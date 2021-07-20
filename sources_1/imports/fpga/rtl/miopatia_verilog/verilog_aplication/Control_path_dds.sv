@@ -4,7 +4,8 @@ module Control_path
     input clk65,
     input areset_n,
     input start,
-    input test,
+    input test1,
+    input test2,
     input logic signed [MAGNITUD_WIDTH-1:0] ADC_A,
     input logic signed [MAGNITUD_WIDTH-1:0] ADC_B,
     output logic fin,
@@ -55,7 +56,7 @@ module Control_path
         if (ovalid)
           state1<=G2;
       G1B:
-        if (state2==S0)
+        if ((state2==S0) || (test2==1'b1))
           state1<=G2;
       G2:
       begin
@@ -71,7 +72,7 @@ module Control_path
             contador_5_ciclos<=contador_5_ciclos+1;
         if ((address_mem==199))
         begin
-          if (fin2==1'b1)
+          if ((fin2==1'b1)||(test2==1'b1))
           begin
             state1<=G3;
             address_mem<=0;
@@ -492,7 +493,7 @@ module Control_path
     $readmemh(FICHERO_INICIAL, rom);
   end
 
-  assign incrementado = test? 32'd34359738:rom[address_mem]; //puro combinacional
+  assign incrementado = test1? 32'd34359738:rom[address_mem]; //puro combinacional
 
 
 endmodule

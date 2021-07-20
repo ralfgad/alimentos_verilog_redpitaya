@@ -55,7 +55,7 @@ else
     end
     D2: begin
             CONT<=CONT-1;
-            if (ACCU>M)
+            if (ACCU>=M)
             begin
                Q<=Q+1;
                ACCU<=ACCU-M;
