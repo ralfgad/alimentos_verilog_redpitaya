@@ -35,7 +35,7 @@
  */
 
 
-module red_pitaya_asg_ch #(
+module red_pitaya_asg_ch_rafa #(
    parameter RSZ = 14
 )(
    // DAC
@@ -61,8 +61,8 @@ module red_pitaya_asg_ch #(
    input      [ 14-1: 0] buf_wdata_i     ,  //!< buffer write data
    output reg [ 14-1: 0] buf_rdata_o     ,  //!< buffer read data
    output reg [RSZ-1: 0] buf_rpnt_o      ,  //!< buffer current read pointer
+   output                fin             ,
    // configuration
-   output                fin,
    input     [RSZ+15: 0] set_size_i      ,  //!< set table data size
    input     [RSZ+15: 0] set_step_i      ,  //!< set pointer step
    input     [RSZ+15: 0] set_ofs_i       ,  //!< set reset offset
@@ -83,7 +83,7 @@ module red_pitaya_asg_ch #(
 //
 //  DAC buffer RAM
 
-reg   [  14-1: 0] dac_buf [0:(1<<RSZ)-1] ;
+// reg   [  14-1: 0] dac_buf [0:(1<<RSZ)-1] ;
 reg   [  14-1: 0] dac_rd    ;
 reg   [  14-1: 0] dac_rdat  ;
 reg   [ RSZ-1: 0] dac_rp    ;
@@ -106,22 +106,19 @@ always @(posedge dac_clk_i)
 begin
    buf_rpnt_o <= dac_pnt[RSZ+15:16];
    dac_rp     <= dac_pnt[RSZ+15:16];
-   dac_rd     <= dac_buf[dac_rp] ;
-   dac_rdat   <= dac_rd ;  // improve timing
+   //dac_rd     <= dac_buf[dac_rp] ;
+   //dac_rdat   <= dac_rd ;  // improve timing
 end
 
 
-// read-back
-always @(posedge dac_clk_i)
-//buf_rdata_o <= control[4]?result_buf[buf_addr_i]:dac_buf[buf_addr_i] ;
-buf_rdata_o <= result_buf[buf_addr_i] ;
+
 
 
 // scale and offset
-always @(posedge dac_clk_i)
-begin
-   dac_mult <= $signed(dac_rdat) * $signed({1'b0,set_amp_i}) ;
-   dac_sum  <= $signed(dac_mult[28-1:13]) + $signed(set_dc_i) ;
+//always @(posedge dac_clk_i)
+//begin
+  // dac_mult <= $signed(dac_rdat) * $signed({1'b0,set_amp_i}) ;
+   // dac_sum  <= $signed(dac_mult[28-1:13]) + $signed(set_dc_i) ;
 
    // saturation
   // if (set_zero_i)  
@@ -131,7 +128,7 @@ begin
   // else 
   //    dac_o <= ^dac_sum[15-1:15-2] ? {dac_sum[15-1], {13{~dac_sum[15-1]}}} : dac_sum[13:0];
 
-end
+//end
 
 //---------------------------------------------------------------------------------
 //
@@ -405,10 +402,9 @@ begin
       dac_o <= 14'h0;
    else if (lastval) //on last value in burst send user specified last value
       dac_o <= set_last_i;
-   else if (control[4])
-      dac_o <= ^dac_sum_rafa[15-1:15-2] ? {dac_sum_rafa[15-1], {13{~dac_sum_rafa[15-1]}}} : dac_sum_rafa[13:0];
    else 
-      dac_o <= ^dac_sum[15-1:15-2] ? {dac_sum[15-1], {13{~dac_sum[15-1]}}} : dac_sum[13:0];
+      dac_o <= ^dac_sum_rafa[15-1:15-2] ? {dac_sum_rafa[15-1], {13{~dac_sum_rafa[15-1]}}} : dac_sum_rafa[13:0];
+ 
 
 end
 
@@ -429,9 +425,9 @@ Ucontrol
 //.test1(1'b0),
 //.test2(1'b1),
 .areset_n(dac_rstn_i),
-.start(set_once_i),
-.ADC_A(r_ADC_DA),
-.ADC_B(r_ADC_DB),
+.start(empezar_chirp),
+.ADC_A(ADC_DA_reg2),
+.ADC_B(ADC_DA_reg2),
 .address_mem(direccion),
 .fin(fin),
 .fin2(wren),
@@ -442,16 +438,16 @@ Ucontrol
 .MODULOB(moduloB)
 );
 
-assign resultado=canal?modulo:fase;
+// assign resultado=canal?modulo:fase;
 
 // write from system or chirp
-always @(posedge dac_clk_i)
-begin
-if (buf_we_i)  dac_buf[buf_addr_i] <= buf_wdata_i[14-1:0] ;
+// always @(posedge dac_clk_i)
+// begin
+// if (buf_we_i)  dac_buf[buf_addr_i] <= buf_wdata_i[14-1:0] ;
 
 //if (wren)  dac_buf[{1'b0,direccion}] <= modulo ;
 //if (wren)  dac_buf[{1'b1,direccion}] <= fase ;
-end
+// end
 
 
 reg   [  14-1: 0] result_buf [0:(1<<9)-1] ; // buffer de 512 x 32
@@ -465,6 +461,9 @@ if (wren)
     end
 end
 
-
+// read-back
+always @(posedge dac_clk_i)
+//buf_rdata_o <= control[4]?result_buf[buf_addr_i]:dac_buf[buf_addr_i] ;
+    buf_rdata_o <= result_buf[buf_addr_i] ;
 
 endmodule

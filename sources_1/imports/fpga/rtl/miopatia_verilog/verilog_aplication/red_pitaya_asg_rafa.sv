@@ -49,7 +49,7 @@
  */
 
 
-module red_pitaya_asg (
+module red_pitaya_asg_rafa (
   // DAC
   output     [ 14-1: 0] dac_a_o   ,  // DAC data CHA
   output     [ 14-1: 0] dac_b_o   ,  // DAC data CHB
@@ -100,45 +100,80 @@ reg               trig_a_sw    , trig_b_sw    ;
 reg   [   3-1: 0] trig_a_src   , trig_b_src   ;
 wire              trig_a_done  , trig_b_done  ;
 reg   [  14-1: 0] set_a_last   , set_b_last   ;
-wire fina,finb;
-red_pitaya_asg_ch  #(.RSZ (RSZ)) ch [1:0] (
+  wire fina;
+red_pitaya_asg_ch  #(.RSZ (RSZ)) ch_b (
   // DAC
-  .dac_o           ({dac_b_o          , dac_a_o          }),  // dac data output
-  .dac_clk_i       ({1'b0     , dac_clk_i        }),  // dac clock
-  .dac_rstn_i      ({1'b0      , dac_rstn_i       }),  // dac reset - active low
-  //ADC
-  .adc_a_i         ({adc_a_i          , adc_a_i          }),  //adc entradas
-  .adc_b_i         ({adc_b_i          , adc_b_i          }),  //adc entradas  
-  //control
-  .control          ({control        , control           }),  //adc entradas
-  .canal            ({1'b0           , 1'b1              }),   //modulo o fase
+  .dac_o           ({dac_b_o            }),  // dac data output
+  .dac_clk_i       ({dac_clk_i          }),  // dac clock
+  .dac_rstn_i      ({dac_rstn_i         }),  // dac reset - active low
+
   // trigger
-  .trig_sw_i       ({trig_b_sw        , trig_a_sw        }),  // software trigger
-  .trig_ext_i      ({trig_b_i         , trig_a_i         }),  // external trigger
-  .trig_src_i      ({trig_b_src       , trig_a_src       }),  // trigger source selector
-  .trig_done_o     ({trig_b_done      , trig_a_done      }),  // trigger event
+  .trig_sw_i       ({trig_b_sw          }),  // software trigger
+  .trig_ext_i      ({trig_b_i           }),  // external trigger
+  .trig_src_i      ({trig_b_src         }),  // trigger source selector
+  .trig_done_o     ({trig_b_done        }),  // trigger event
   // buffer ctrl
-  .buf_we_i        ({buf_b_we         , buf_a_we         }),  // buffer buffer write
-  .buf_addr_i      ({buf_b_addr       , buf_a_addr       }),  // buffer address
-  .buf_wdata_i     ({sys_wdata[14-1:0], sys_wdata[14-1:0]}),  // buffer write data
-  .buf_rdata_o     ({buf_b_rdata      , buf_a_rdata      }),  // buffer read data
-  .buf_rpnt_o      ({buf_b_rpnt       , buf_a_rpnt       }),  // buffer current read pointer
+  .buf_we_i        ({buf_b_we           }),  // buffer buffer write
+  .buf_addr_i      ({buf_b_addr         }),  // buffer address
+  .buf_wdata_i     ({sys_wdata[14-1:0]  }),  // buffer write data
+  .buf_rdata_o     ({buf_b_rdata        }),  // buffer read data
+  .buf_rpnt_o      ({buf_b_rpnt         }),  // buffer current read pointer
   // configuration
-  .fin             ({finb       ,       fina              }),  // set table data size
-  .set_size_i      ({set_b_size       , set_a_size       }),  // set table data size
-  .set_step_i      ({set_b_step       , set_a_step       }),  // set pointer step
-  .set_ofs_i       ({set_b_ofs        , set_a_ofs        }),  // set reset offset
-  .set_rst_i       ({set_b_rst        , set_a_rst        }),  // set FMS to reset
-  .set_once_i      ({set_b_once       , set_a_once       }),  // set only once
-  .set_wrap_i      ({set_b_wrap       , set_a_wrap       }),  // set wrap pointer
-  .set_amp_i       ({set_b_amp        , set_a_amp        }),  // set amplitude scale
-  .set_dc_i        ({set_b_dc         , set_a_dc         }),  // set output offset
-  .set_last_i      ({set_b_last       , set_a_last       }),  // set last value
-  .set_zero_i      ({set_b_zero       , set_a_zero       }),  // set output to zero
-  .set_ncyc_i      ({set_b_ncyc       , set_a_ncyc       }),  // set number of cycle
-  .set_rnum_i      ({set_b_rnum       , set_a_rnum       }),  // set number of repetitions
-  .set_rdly_i      ({set_b_rdly       , set_a_rdly       }),  // set delay between repetitions
-  .set_rgate_i     ({set_b_rgate      , set_a_rgate      })   // set external gated repetition
+
+  .set_size_i      ({set_b_size         }),  // set table data size
+  .set_step_i      ({set_b_step         }),  // set pointer step
+  .set_ofs_i       ({set_b_ofs          }),  // set reset offset
+  .set_rst_i       ({set_b_rst          }),  // set FMS to reset
+  .set_once_i      ({set_b_once        }),  // set only once
+  .set_wrap_i      ({set_b_wrap            }),  // set wrap pointer
+  .set_amp_i       ({set_b_amp           }),  // set amplitude scale
+  .set_dc_i        ({set_b_dc           }),  // set output offset
+  .set_last_i      ({set_b_last          }),  // set last value
+  .set_zero_i      ({set_b_zero          }),  // set output to zero
+  .set_ncyc_i      ({set_b_ncyc          }),  // set number of cycle
+  .set_rnum_i      ({set_b_rnum          }),  // set number of repetitions
+  .set_rdly_i      ({set_b_rdly         }),  // set delay between repetitions
+  .set_rgate_i     ({set_b_rgate        })   // set external gated repetition
+);
+
+red_pitaya_asg_ch_rafa  #(.RSZ (RSZ)) ch_a (
+  // DAC
+  .dac_o           ({ dac_a_o          }),  // dac data output
+  .dac_clk_i       ({ dac_clk_i        }),  // dac clock
+  .dac_rstn_i      ({dac_rstn_i        }),  // dac reset - active low
+  //ADC
+  .adc_a_i         ({adc_a_i           }),  //adc entradas
+  .adc_b_i         ({ adc_b_i          }),  //adc entradas  
+  //control
+  .control          ({ control         }),  //adc entradas
+  .canal            ({1'b1             }),   //modulo o fase
+  // trigger
+  .trig_sw_i       ({trig_a_sw         }),  // software trigger
+  .trig_ext_i      ({trig_a_i          }),  // external trigger
+  .trig_src_i      ({trig_a_src        }),  // trigger source selector
+  .trig_done_o     ({ trig_a_done      }),  // trigger event
+  // buffer ctrl
+  .buf_we_i        ({ buf_a_we         }),  // buffer buffer write
+  .buf_addr_i      ({ buf_a_addr       }),  // buffer address
+  .buf_wdata_i     ({sys_wdata[14-1:0]}),  // buffer write data
+  .buf_rdata_o     ({buf_a_rdata       }),  // buffer read data
+  .buf_rpnt_o      ({ buf_a_rpnt       }),  // buffer current read pointer
+  // configuration
+   .fin            ({    fina          }),  // set table data size
+  .set_size_i      ({ set_a_size       }),  // set table data size
+  .set_step_i      ({set_a_step        }),  // set pointer step
+  .set_ofs_i       ({ set_a_ofs        }),  // set reset offset
+  .set_rst_i       ({ set_a_rst        }),  // set FMS to reset
+  .set_once_i      ({ set_a_once       }),  // set only once
+  .set_wrap_i      ({ set_a_wrap       }),  // set wrap pointer
+  .set_amp_i       ({ set_a_amp        }),  // set amplitude scale
+  .set_dc_i        ({ set_a_dc         }),  // set output offset
+  .set_last_i      ({ set_a_last       }),  // set last value
+  .set_zero_i      ({ set_a_zero       }),  // set output to zero
+  .set_ncyc_i      ({set_a_ncyc        }),  // set number of cycle
+  .set_rnum_i      ({set_a_rnum        }),  // set number of repetitions
+  .set_rdly_i      ({ set_a_rdly       }),  // set delay between repetitions
+  .set_rgate_i     ({ set_a_rgate      })   // set external gated repetition
 );
 
 always @(posedge dac_clk_i)

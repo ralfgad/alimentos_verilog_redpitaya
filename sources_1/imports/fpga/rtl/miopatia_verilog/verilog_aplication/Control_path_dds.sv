@@ -87,7 +87,7 @@ module Control_path
       end
       G3:
       begin
-        fin<=1'b0;
+        fin<=1'b1;
         if (!start)
           state1 <= G0;
       end

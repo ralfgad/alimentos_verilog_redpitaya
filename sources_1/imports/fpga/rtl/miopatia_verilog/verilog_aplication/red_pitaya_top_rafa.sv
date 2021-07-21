@@ -50,7 +50,7 @@
  */
 
 
-module red_pitaya_top #(
+module red_pitaya_top_rafa #(
   // identification
   bit [0:5*32-1] GITH = '0,
   // module numbers
@@ -384,7 +384,7 @@ begin
   // dac_dat_b <= {dac_b[14-1], ~dac_b[14-2:0]};
   
   dac_dat_a <= {dac_a[14-1], ~dac_a[14-2:0]};
-  dac_dat_b <= '0;
+  dac_dat_b <= {dac_b[14-1], ~dac_b[14-2:0]};
 end
 
 // DDR outputs
@@ -451,8 +451,8 @@ red_pitaya_scope i_scope (
   // ADC
   .adc_a_i       (adc_dat[0]  ),  // CH 1
   .adc_b_i       (adc_dat[1]  ),  // CH 2
-  .adc_clk_i     (1'b0    ),  // clock
-  .adc_rstn_i    (1'b0   ),  // reset - active low
+  .adc_clk_i     (adc_clk   ),  // clock
+  .adc_rstn_i    (adc_rstn  ),  // reset - active low
   .trig_ext_i    (gpio.i[8]   ),  // external trigger
   .trig_asg_i    (trig_asg_out),  // ASG trigger
   // AXI0 master                 // AXI1 master
@@ -481,12 +481,12 @@ red_pitaya_scope i_scope (
 ////////////////////////////////////////////////////////////////////////////////
 
 
-red_pitaya_asg i_asg (
+red_pitaya_asg_rafa i_asg (
    // DAC
   .dac_a_o         (asg_dat[0]  ),  // CH 1
   .dac_b_o         (asg_dat[1]  ),  // CH 2
-  .adc_a_i         (r_ADC_DA    ),
-  .adc_b_i         (r_ADC_DB    ),
+  .adc_a_i         (adc_dat[0]     ),
+  .adc_b_i         (adc_dat[1]    ),
   .control         (led_o[7:0]  ),
   .dac_clk_i       (adc_clk     ),  // clock
   .dac_rstn_i      (adc_rstn    ),  // reset - active low
@@ -572,86 +572,6 @@ red_pitaya_daisy i_daisy (
 /////////////////////////////////////
 
 
-wire    [13:0]	sin_out;
-
-
-
-wire    [31:0]	fase;
-wire    [31:0]	modulo, moduloA, moduloB;
-wire    [7:0]  direccion;
-wire    wren;
-wire    [21:0] temp1,temp2;
-
-
-
-assign  phasinc1 = 32'd34359738;
-assign  phasinc2 = phasinc1<<1;
-
-
-
-assign  POWER_ON  = 1;            //Disable OSC_SMA
-
-
-reg		 [13:0]		r_ADC_DA/*synthesis noprune*/;
-reg	signed	 [13:0]		r_ADC_DB/*synthesis noprune*/;
-reg		 [13:0]		r_DAC_DA/*synthesis noprune*/;
-
-reg       [13:0]     ADC_DA_reg, ADC_DA_reg2;
-reg       [13:0]     ADC_DB_reg, ADC_DB_reg2;
-//reg		 [13:0]		r_DAC_DB/*synthesis noprune*/;
-
-/*
-assign temp1=(ADC_DA-13'd6702)*8'b01011011;
-assign temp2=(ADC_DB-13'd6702)*8'b01011011;
-
-always @ (posedge CLK_65) r_ADC_DA <= 2*temp1[18:6]-13'd4096;
-always @ (posedge CLK_65) r_ADC_DB <= 2*temp2[18:6]-13'd4096;
-
-
-
-
-
-*/
-
-
-//sincronizadores
-
-always_ff @(posedge adc_clk )
-	begin
-			ADC_DA_reg<=adc_dat[0];
-			ADC_DA_reg2<=ADC_DA_reg;
-			ADC_DB_reg<=adc_dat[1];
-			ADC_DB_reg2<=ADC_DB_reg;
-			
-	end
-
-localparam DESFASE1=20, DESFASE2=30;
-
-localparam [13:0] cero_magnitud='0;
-
-//logic [(DESFASE2 -1):0][13:0] auxB;
-
-//logic  signed[13:0] LOOP_B_DESFASADO;
-/*
-always_ff @(posedge adc_clk or negedge adc_rstn)
-	if (!adc_rstn)
-			  auxB<={(DESFASE2){cero_magnitud}};
-	else
-			auxB<={r_DAC_DA,auxB[DESFASE2-1:1]};
-
-	assign LOOP_B_DESFASADO=auxB[0];
-
-*/
-assign temp1=(ADC_DA_reg2-13'd6690)*8'b10101110;
-assign temp2=(ADC_DB_reg2-13'd6690)*8'b10101110;
-
-always @ (posedge adc_clk) r_ADC_DA <= temp1[18:6]-13'd4096;
-always @ (posedge adc_clk) r_ADC_DB <=  temp2[18:6]-13'd4096;
-
-
-always @ (posedge adc_clk) r_DAC_DA <= {sin_out[13],sin_out[13:1]};
-
-always @ (posedge adc_clk) DAC_DA_rafa <= {sin_out[13],sin_out[13:1]}+13'd4096;
 
 
 
@@ -662,29 +582,18 @@ always @ (posedge adc_clk) DAC_DA_rafa <= {sin_out[13],sin_out[13:1]}+13'd4096;
 
 
 
-	
-Control_path
-#(.DATA_WIDTH(32), .ADDR_WIDTH(8), .MAGNITUD_WIDTH(14), .ancho_detector(30),.ciclos(1), .FICHERO_INICIAL("freq_log.dat"))
 
-Ucontrol
-(.clk125(adc_clk),
-.clk65(adc_clk),
-//.test1(led_o[1]),
-//.test2(led_o[2]),
-.test1(1'b1),
-.test2(1'b1),
-.areset_n(adc_rstn),
-.start(led_o[3]),
-.ADC_A(r_ADC_DA),
-.ADC_B(r_ADC_DB),
-.address_mem(direccion),
-.fin(),
-.fin2(wren),
-.DAC_S_registrado(sin_out),
-.MODULO(modulo),
-.PHASE(fase),
-.MODULOA(moduloA),
-.MODULOB(moduloB)
-);
 
-endmodule: red_pitaya_top
+
+
+
+
+
+
+
+
+
+
+
+
+endmodule: red_pitaya_top_rafa
