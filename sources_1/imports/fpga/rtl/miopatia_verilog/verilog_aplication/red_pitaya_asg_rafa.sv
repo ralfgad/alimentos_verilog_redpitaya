@@ -62,6 +62,8 @@ module red_pitaya_asg_rafa (
   input                 trig_a_i  ,  // starting trigger CHA
   input                 trig_b_i  ,  // starting trigger CHB
   output                trig_out_o,  // notification trigger
+  output                fina,
+  output    [2:0]       estado_pasos_cero,
   // System bus
   input      [ 32-1: 0] sys_addr  ,  // bus address
   input      [ 32-1: 0] sys_wdata ,  // bus write data
@@ -93,19 +95,20 @@ reg   [  32-1: 0] set_a_rdly   , set_b_rdly   ;
 reg               set_a_rgate  , set_b_rgate  ;
 reg               buf_a_we     , buf_b_we     ;
 reg   [ RSZ-1: 0] buf_a_addr   , buf_b_addr   ;
-wire  [  14-1: 0] buf_a_rdata  , buf_b_rdata  ;
+wire  [  14-1: 0]  buf_b_rdata                ;
+wire  [ 31: 0] buf_a_rdata                    ;
 wire  [ RSZ-1: 0] buf_a_rpnt   , buf_b_rpnt   ;
 reg   [  32-1: 0] buf_a_rpnt_rd, buf_b_rpnt_rd;
 reg               trig_a_sw    , trig_b_sw    ;
 reg   [   3-1: 0] trig_a_src   , trig_b_src   ;
 wire              trig_a_done  , trig_b_done  ;
 reg   [  14-1: 0] set_a_last   , set_b_last   ;
-  wire fina;
+// wire fina;
 red_pitaya_asg_ch  #(.RSZ (RSZ)) ch_b (
   // DAC
   .dac_o           ({dac_b_o            }),  // dac data output
-  .dac_clk_i       ({dac_clk_i          }),  // dac clock
-  .dac_rstn_i      ({dac_rstn_i         }),  // dac reset - active low
+  .dac_clk_i       ({1'b0         }),  // dac clock
+  .dac_rstn_i      ({1'b0        }),  // dac reset - active low
 
   // trigger
   .trig_sw_i       ({trig_b_sw          }),  // software trigger
@@ -160,6 +163,7 @@ red_pitaya_asg_ch_rafa  #(.RSZ (RSZ)) ch_a (
   .buf_rpnt_o      ({ buf_a_rpnt       }),  // buffer current read pointer
   // configuration
    .fin            ({    fina          }),  // set table data size
+   .estado_pasos_cero( estado_pasos_cero),
   .set_size_i      ({ set_a_size       }),  // set table data size
   .set_step_i      ({set_a_step        }),  // set pointer step
   .set_ofs_i       ({ set_a_ofs        }),  // set reset offset
@@ -310,7 +314,7 @@ end else begin
      20'h00044 : begin sys_ack <= sys_en;          sys_rdata <= {{32-14{1'b0}},set_a_last}         ; end
      20'h00048 : begin sys_ack <= sys_en;          sys_rdata <= {{32-14{1'b0}},set_b_last}         ; end
 
-     20'h1zzzz : begin sys_ack <= ack_dly;         sys_rdata <= {{32-14{1'b0}},buf_a_rdata}        ; end
+     20'h1zzzz : begin sys_ack <= ack_dly;         sys_rdata <= {buf_a_rdata}                      ; end
      20'h2zzzz : begin sys_ack <= ack_dly;         sys_rdata <= {{32-14{1'b0}},buf_b_rdata}        ; end
 
        default : begin sys_ack <= sys_en;          sys_rdata <=  32'h0                             ; end

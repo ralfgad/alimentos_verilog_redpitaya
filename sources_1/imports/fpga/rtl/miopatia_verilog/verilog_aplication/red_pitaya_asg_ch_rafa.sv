@@ -59,9 +59,10 @@ module red_pitaya_asg_ch_rafa #(
    input                 buf_we_i        ,  //!< buffer write enable
    input      [ 14-1: 0] buf_addr_i      ,  //!< buffer address
    input      [ 14-1: 0] buf_wdata_i     ,  //!< buffer write data
-   output reg [ 14-1: 0] buf_rdata_o     ,  //!< buffer read data
+   output reg [31: 0]    buf_rdata_o     ,  //!< buffer read data
    output reg [RSZ-1: 0] buf_rpnt_o      ,  //!< buffer current read pointer
    output                fin             ,
+   output    [2:0]     estado_pasos_cero ,
    // configuration
    input     [RSZ+15: 0] set_size_i      ,  //!< set table data size
    input     [RSZ+15: 0] set_step_i      ,  //!< set pointer step
@@ -411,17 +412,18 @@ end
 
 
 
-wire empezar_chirp= set_once_i || control[3];
+wire empezar_chirp= set_once_i ;
 
 	
 Control_path
-#(.DATA_WIDTH(32), .ADDR_WIDTH(8), .MAGNITUD_WIDTH(14), .ancho_detector(30),.ciclos(1), .FICHERO_INICIAL("freq_log.dat"))
+#(.DATA_WIDTH(32), .ADDR_WIDTH(8), .MAGNITUD_WIDTH(14), .ancho_detector(30),.pciclos(1), .FICHERO_INICIAL("freq_log.dat"))
 
 Ucontrol
 (.clk125(dac_clk_i),
 .clk65(dac_clk_i),
 .test1(control[1]),
 .test2(control[2]),
+.test3(control[3]),
 //.test1(1'b0),
 //.test2(1'b1),
 .areset_n(dac_rstn_i),
@@ -429,13 +431,16 @@ Ucontrol
 .ADC_A(ADC_DA_reg2),
 .ADC_B(ADC_DA_reg2),
 .address_mem(direccion),
+.numero_rep(set_rnum_i),
+.num_ciclos(set_ncyc_i),
 .fin(fin),
 .fin2(wren),
 .DAC_S_registrado(sin_out),
 .MODULO(modulo),
 .PHASE(fase),
 .MODULOA(moduloA),
-.MODULOB(moduloB)
+.MODULOB(moduloB),
+.estado_pasos_cero(estado_pasos_cero)
 );
 
 // assign resultado=canal?modulo:fase;

@@ -1,11 +1,14 @@
 module Control_path
-  #(parameter DATA_WIDTH=32, parameter ADDR_WIDTH=8, parameter MAGNITUD_WIDTH=14, parameter ancho_detector=10, parameter ciclos=4, parameter FICHERO_INICIAL="freq_log.dat", parameter shunt=1000)
+  #(parameter DATA_WIDTH=32, parameter ADDR_WIDTH=8, parameter MAGNITUD_WIDTH=14, parameter ancho_detector=10, parameter pciclos=4, parameter FICHERO_INICIAL="freq_log.dat", parameter shunt=1000)
    (input clk125,
     input clk65,
     input areset_n,
     input start,
     input test1,
     input test2,
+    input test3,
+    input [7:0] numero_rep,
+    input [2:0] num_ciclos,
     input logic signed [MAGNITUD_WIDTH-1:0] ADC_A,
     input logic signed [MAGNITUD_WIDTH-1:0] ADC_B,
     output logic fin,
@@ -18,18 +21,32 @@ module Control_path
     output logic signed[31:0] MODULOB,
     output logic [7:0] address_mem,
     output logic [7:0] address_mem2,
+    output logic [2:0] estado_pasos_cero,
     output logic signed [31:0] PHASE
    );
-
+parameter G0=3'b000, G1=3'b001, G1B=3'b100, G2=3'b010, G3=3'b011;
+parameter S0=3'b000, S1=3'b001, S4=3'b100,  S3=3'b011;
   logic signed [MAGNITUD_WIDTH-1:0] DAC_A;
   //generacion
   logic detectado_cero_S;
-  enum  logic [2:0] {G0, G1,G1B, G2,G3} state1;
 
-  enum logic [2:0] {S0 , S1,  S3,S4} state2;
+  
+  // enum  logic [2:0] {G0, G1,G1B, G2,G3} state1;
+
+  // enum logic [2:0] {S0 , S1,  S3,S4} state2;
+  
+  logic [2:0] state1;
+
+  logic [2:0] state2;
 
   //logic [7:0] address_mem;
   logic [2:0] contador_5_ciclos;
+  logic [2:0] ciclos;
+  logic [7:0] repeticiones;
+  
+  
+  assign ciclos=test3?num_ciclos:pciclos;
+  assign repeticiones=test3?numero_rep:199;
 
   //logic [31:0] phase_accumulator;
   logic ovalid;
@@ -70,7 +87,7 @@ module Control_path
           else
             //		if ((address_mem!=199)||((address_mem==199)&& (contador_5_ciclos<=ciclos)))
             contador_5_ciclos<=contador_5_ciclos+1;
-        if ((address_mem==199))
+        if ((address_mem==repeticiones))
         begin
           if ((fin2==1'b1)||(test2==1'b1))
           begin
@@ -188,7 +205,8 @@ module Control_path
   //logic signed [MAGNITUD_WIDTH-1:0] MODULOA, MODULOB;
   logic signed [MAGNITUD_WIDTH-1:0] MODULO_POSB, MODULO_NEGB;
   logic signed [MAGNITUD_WIDTH-1:0] PHASE_PRE;
-  logic signed     [63:0]                      temporal;
+  //logic signed     [63:0]                      temporal;
+  logic signed     [31:0]                      temporal;
   always_ff@(posedge clk125 or negedge areset_n)
   begin
     if(!areset_n)
@@ -294,7 +312,7 @@ module Control_path
             MODULOA<=(MODULO_POSA-MODULO_NEGA)>>>2;
             MODULOB<=(MODULO_POSB-MODULO_NEGB)>>>2;
             //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
-            PHASE_PRE<=(temporal>>32);
+            PHASE_PRE<=(temporal);
             //contador_4_ciclosB<='0;
           end
         end
@@ -309,13 +327,14 @@ module Control_path
             MODULOA<=(MODULO_POSA-MODULO_NEGA)>>>2;
             MODULOB<=(MODULO_POSB-MODULO_NEGB)>>>2;
             //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
-            PHASE_PRE<=(temporal>>32);
+            PHASE_PRE<=(temporal);
             //contador_4_ciclosB<='0;
           end
 
           if (contador_4_ciclosB == ciclos)
           begin
-            temporal=(diferencia_pos*incrementado*360);
+            //temporal=(diferencia_pos*incrementado*360);
+            temporal=diferencia_pos;
           end
 
         end
@@ -330,7 +349,7 @@ module Control_path
             MODULOA<=(MODULO_POSA-MODULO_NEGA)>>>2;
             MODULOB<=(MODULO_POSB-MODULO_NEGB)>>>2;
             //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
-            PHASE_PRE<=(temporal>>32);
+            PHASE_PRE<=(temporal);
             //contador_4_ciclosB<='0;
           end
         end
@@ -359,7 +378,7 @@ module Control_path
             MODULOA<=(MODULO_POSA-MODULO_NEGA)>>>2;
             MODULOB<=(MODULO_POSB-MODULO_NEGB)>>>2;
             //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
-            PHASE_PRE<=(temporal>>32);
+            PHASE_PRE<=(temporal);
             //contador_4_ciclosA<='0;
           end
         end
@@ -374,12 +393,13 @@ module Control_path
             MODULOA<=(MODULO_POSA-MODULO_NEGA)>>>2;
             MODULOB<=(MODULO_POSB-MODULO_NEGB)>>>2;
             //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
-            PHASE_PRE<=(temporal>>32);
+            PHASE_PRE<=(temporal);
             //contador_4_ciclosA<='0;
           end
           if (contador_4_ciclosA == ciclos)
           begin
-            temporal=-(diferencia_neg*incrementado*360);
+           // temporal=-(diferencia_neg*incrementado*360);
+            temporal=-diferencia_pos;
           end
 
         end
@@ -394,7 +414,7 @@ module Control_path
             MODULOA<=(MODULO_POSA-MODULO_NEGA)>>>2;
             MODULOB<=(MODULO_POSB-MODULO_NEGB)>>>2;
             //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
-            PHASE_PRE<=(temporal>>32);
+            PHASE_PRE<=(temporal);
             //contador_4_ciclosB<='0;
           end
         end
@@ -493,8 +513,8 @@ module Control_path
     $readmemh(FICHERO_INICIAL, rom);
   end
 
-  assign incrementado = test1? 32'd34359738:rom[address_mem]; //puro combinacional
-
+  assign incrementado = rom[address_mem]; //puro combinacional
+  assign estado_pasos_cero= test1? state2: state1;
 
 endmodule
 

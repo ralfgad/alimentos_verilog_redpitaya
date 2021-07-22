@@ -402,19 +402,21 @@ logic [  8-1: 0] exp_p_in , exp_n_in ;
 logic [  8-1: 0] exp_p_out, exp_n_out;
 logic [  8-1: 0] exp_p_dir, exp_n_dir;
 
+wire [3:0] aire;
+
 red_pitaya_hk i_hk (
   // system signals
   .clk_i           (adc_clk ),  // clock
   .rstn_i          (adc_rstn),  // reset - active low
   // LED
-  .led_o           (  led_o                      ),  // LED output
+  .led_o           ( { aire,       led_o[3:0]}                ),  // LED output
   // global configuration
   .digital_loop    (digital_loop),
   // Expansion connector
   .exp_p_dat_i     (exp_p_in ),  // input data
   .exp_p_dat_o     (exp_p_out),  // output data
   .exp_p_dir_o     (exp_p_dir),  // 1-output enable
-  .exp_n_dat_i     (exp_n_in ),
+  .exp_n_dat_i     ({led_o[7],exp_n_in[6:0]} ),
   .exp_n_dat_o     (exp_n_out),
   .exp_n_dir_o     (exp_n_dir),
    // System bus
@@ -434,9 +436,11 @@ red_pitaya_hk i_hk (
 ////////////////////////////////////////////////////////////////////////////////
 // GPIO
 ////////////////////////////////////////////////////////////////////////////////
-
+// wire fin;
 IOBUF i_iobufp [8-1:0] (.O(exp_p_in), .IO(exp_p_io), .I(exp_p_out), .T(~exp_p_dir) );
 IOBUF i_iobufn [8-1:0] (.O(exp_n_in), .IO(exp_n_io), .I(exp_n_out), .T(~exp_n_dir) );
+
+//IOBUF i_iobufin  (.O(led_o[7]), .IO(exp_n_io[0]), .I(fin), .T(exp_n_dir[0]) );
 
 assign gpio.i[15: 8] = exp_p_in;
 assign gpio.i[23:16] = exp_n_in;
@@ -487,12 +491,14 @@ red_pitaya_asg_rafa i_asg (
   .dac_b_o         (asg_dat[1]  ),  // CH 2
   .adc_a_i         (adc_dat[0]     ),
   .adc_b_i         (adc_dat[1]    ),
-  .control         (led_o[7:0]  ),
+  .control         ({{4{1'b0}},led_o[3:0]}  ),
   .dac_clk_i       (adc_clk     ),  // clock
   .dac_rstn_i      (adc_rstn    ),  // reset - active low
   .trig_a_i        (gpio.i[8]   ),
   .trig_b_i        (gpio.i[8]   ),
   .trig_out_o      (trig_asg_out),
+  .fina            (led_o[7]),
+  .estado_pasos_cero(led_o[6:4]),
   // System bus
   .sys_addr        (sys[2].addr ),
   .sys_wdata       (sys[2].wdata),
