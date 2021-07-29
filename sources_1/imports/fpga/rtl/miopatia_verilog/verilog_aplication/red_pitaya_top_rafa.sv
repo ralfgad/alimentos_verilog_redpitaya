@@ -294,6 +294,12 @@ for (genvar i=6; i<8; i++) begin: for_sys
 end: for_sys
 endgenerate
 
+//voy a sileciar osciloscopio
+  sys_bus_stub sys_bus_stub_1 (sys[1]);
+  
+  
+//voy a sileciar daisy
+  sys_bus_stub sys_bus_stub_5 (sys[5]);  
 ////////////////////////////////////////////////////////////////////////////////
 // Analog mixed signals (PDM analog outputs)
 ////////////////////////////////////////////////////////////////////////////////
@@ -455,8 +461,10 @@ red_pitaya_scope i_scope (
   // ADC
   .adc_a_i       (adc_dat[0]  ),  // CH 1
   .adc_b_i       (adc_dat[1]  ),  // CH 2
-  .adc_clk_i     (adc_clk   ),  // clock
-  .adc_rstn_i    (adc_rstn  ),  // reset - active low
+  //.adc_clk_i     (adc_clk   ),  // clock
+  //.adc_rstn_i    (adc_rstn  ),  // reset - active low
+  .adc_clk_i     (1'b0 ),  // clock
+  .adc_rstn_i    (1'b0  ),  // reset - active low
   .trig_ext_i    (gpio.i[8]   ),  // external trigger
   .trig_asg_i    (trig_asg_out),  // ASG trigger
   // AXI0 master                 // AXI1 master
@@ -548,8 +556,8 @@ red_pitaya_daisy i_daisy (
   .ser_clk_i       (  ser_clk                    ),  // high speed serial
   .dly_clk_i       (  dly_clk                    ),  // delay clock
    // TX
-  .par_clk_i       (  adc_clk                    ),  // data paralel clock
-  .par_rstn_i      (  adc_rstn                   ),  // reset - active low
+  .par_clk_i       (  1'b0                   ),  // data paralel clock
+  .par_rstn_i      (  1'b0                  ),  // reset - active low
   .par_rdy_o       (  daisy_rx_rdy               ),
   .par_dv_i        (  daisy_rx_rdy               ),
   .par_dat_i       (  16'h1234                   ),

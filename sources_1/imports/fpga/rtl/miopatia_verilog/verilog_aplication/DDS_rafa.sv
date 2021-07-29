@@ -36,7 +36,7 @@ else
     assign addr2=addr1+16*1024;  //coseno   
 //para coseno 
 //assign addr=punt_fijo_divid_pi[46]?punt_fijo_divid_pi[45:36]:(1023-punt_fijo_divid_pi[45:36]);  /
-memoria_dual_port #(.DATA_WIDTH(14),.ADDR_WIDTH(16), .FICHERO_INICIAL("sin_total2.dat"))  my_memory_sin_cos  //forma parte del ciclo 2
+memoria_dual_port #(.DATA_WIDTH(14),.ADDR_WIDTH(16), .FICHERO_INICIAL("sin_total1.dat"))  my_memory_sin_cos  //forma parte del ciclo 2
 						(   
                               .addr1(addr1),
                               .addr2(addr2),

@@ -71,7 +71,8 @@ module red_pitaya_asg_ch_rafa #(
    input                 set_once_i      ,  //!< set only once  -- not used
    input                 set_wrap_i      ,  //!< set wrap enable
    input     [  14-1: 0] set_amp_i       ,  //!< set amplitude scale
-   input     [  14-1: 0] set_dc_i        ,  //!< set output offset
+   input     [  14-1: 0] set_dc_i        ,  //!< set output offset output
+   input     [  14-1: 0] set_adc_b_i        ,  //!< set output offset input canal 2
    input     [  14-1: 0] set_last_i      ,  //!< set final value in burst
    input                 set_zero_i      ,  //!< set output to zero
    input     [  16-1: 0] set_ncyc_i      ,  //!< set number of cycle
@@ -304,6 +305,46 @@ assign ext_trig_n = (ext_trig_dn == 2'b10) ;
 
 ///////////////////// empiezo con codigo nuevo
 
+
+reg		 [13:0]		r_ADC_DA/*synthesis noprune*/;
+reg	signed	 [13:0]		r_ADC_DB/*synthesis noprune*/;
+reg		 [13:0]		r_DAC_DA/*synthesis noprune*/;
+
+logic    signed   [13:0]     ADC_DA_reg, ADC_DA_reg2,ADC_DA_reg2_fil;
+logic   signed   [13:0]     ADC_DB_reg, ADC_DB_reg2,ADC_DB_reg2_fil;
+//filtros copiados de scope
+
+red_pitaya_dfilt1 i_dfilt1_cha (
+   // ADC
+  .adc_clk_i   ( dac_clk_i       ),  // ADC clock
+  .adc_rstn_i  ( dac_rstn_i      ),  // ADC reset - active low
+  .adc_dat_i   ( ADC_DA_reg2   ),  // ADC data
+  .adc_dat_o   ( ),  // ADC data
+   // configuration
+  .cfg_aa_i    ( 18'h07D93 ),  // config AA coefficient
+  .cfg_bb_i    ( 25'h00437C7  ),  // config BB coefficient
+  .cfg_kk_i    ( 25'h0002666  ),  // config KK coefficient
+  .cfg_pp_i    ( 25'h0D9999A  )   // config PP coefficient
+);
+
+red_pitaya_dfilt1 i_dfilt1_chb (
+   // ADC
+  .adc_clk_i   ( dac_clk_i       ),  // ADC clock
+  .adc_rstn_i  ( dac_rstn_i      ),  // ADC reset - active low
+  .adc_dat_i   ( ADC_DB_reg2   ),  // ADC data
+  .adc_dat_o   (  ),  // ADC data
+   // configuration
+  .cfg_aa_i    ( 18'h07D93  ),  // config AA coefficient
+  .cfg_bb_i    ( 25'h00437C7  ),  // config BB coefficient
+  .cfg_kk_i    ( 25'h0002666),  // config KK coefficient
+  .cfg_pp_i    ( 25'h0D9999A  )   // config PP coefficient
+);
+
+
+//atencion importante
+assign ADC_DA_reg2_fil=ADC_DA_reg2;
+assign ADC_DB_reg2_fil=$signed(ADC_DB_reg2)+ $signed(set_adc_b_i );
+
 /////////////////////////////////////
 
 // para mi bloque
@@ -332,12 +373,6 @@ assign  phasinc2 = phasinc1<<1;
 assign  POWER_ON  = 1;            //Disable OSC_SMA
 
 
-reg		 [13:0]		r_ADC_DA/*synthesis noprune*/;
-reg	signed	 [13:0]		r_ADC_DB/*synthesis noprune*/;
-reg		 [13:0]		r_DAC_DA/*synthesis noprune*/;
-
-reg       [13:0]     ADC_DA_reg, ADC_DA_reg2;
-reg       [13:0]     ADC_DB_reg, ADC_DB_reg2;
 //reg		 [13:0]		r_DAC_DB/*synthesis noprune*/;
 
 /*
@@ -415,8 +450,8 @@ end
 wire empezar_chirp= set_once_i ;
 
 	
-Control_path
-#(.DATA_WIDTH(32), .ADDR_WIDTH(8), .MAGNITUD_WIDTH(14), .ancho_detector(30),.pciclos(1), .FICHERO_INICIAL("freq_log.dat"))
+Control_path_rafa
+#(.DATA_WIDTH(32), .ADDR_WIDTH(8), .MAGNITUD_WIDTH(14), .ancho_detector(30),.pciclos(1), .FICHERO_INICIAL("freq_log_ideal.dat"))
 
 Ucontrol
 (.clk125(dac_clk_i),
@@ -428,13 +463,16 @@ Ucontrol
 //.test2(1'b1),
 .areset_n(dac_rstn_i),
 .start(empezar_chirp),
-.ADC_A(ADC_DA_reg2),
-.ADC_B(ADC_DA_reg2),
+.ADC_A(ADC_DA_reg2_fil),
+.ADC_B(ADC_DB_reg2_fil),
 .address_mem(direccion),
+.salto(set_step_i),
 .numero_rep(set_rnum_i),
 .num_ciclos(set_ncyc_i),
+.numero_anchura(set_rdly_i),
 .fin(fin),
-.fin2(wren),
+.fin2(),
+.VALID_M(wren),
 .DAC_S_registrado(sin_out),
 .MODULO(modulo),
 .PHASE(fase),

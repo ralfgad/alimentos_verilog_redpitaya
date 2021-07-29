@@ -106,7 +106,8 @@ reg   [  14-1: 0] set_a_last   , set_b_last   ;
 // wire fina;
 red_pitaya_asg_ch  #(.RSZ (RSZ)) ch_b (
   // DAC
-  .dac_o           ({dac_b_o            }),  // dac data output
+ // .dac_o           ({dac_b_o            }),  // dac data output
+  .dac_o           (),  // dac data output
   .dac_clk_i       ({1'b0         }),  // dac clock
   .dac_rstn_i      ({1'b0        }),  // dac reset - active low
 
@@ -119,8 +120,10 @@ red_pitaya_asg_ch  #(.RSZ (RSZ)) ch_b (
   .buf_we_i        ({buf_b_we           }),  // buffer buffer write
   .buf_addr_i      ({buf_b_addr         }),  // buffer address
   .buf_wdata_i     ({sys_wdata[14-1:0]  }),  // buffer write data
-  .buf_rdata_o     ({buf_b_rdata        }),  // buffer read data
-  .buf_rpnt_o      ({buf_b_rpnt         }),  // buffer current read pointer
+ // .buf_rdata_o     ({buf_b_rdata        }),  // buffer read data
+ // .buf_rpnt_o      ({buf_b_rpnt         }),  // buffer current read pointer
+  .buf_rdata_o     (),  // buffer read data
+  .buf_rpnt_o      (),  // buffer current read pointer
   // configuration
 
   .set_size_i      ({set_b_size         }),  // set table data size
@@ -172,6 +175,7 @@ red_pitaya_asg_ch_rafa  #(.RSZ (RSZ)) ch_a (
   .set_wrap_i      ({ set_a_wrap       }),  // set wrap pointer
   .set_amp_i       ({ set_a_amp        }),  // set amplitude scale
   .set_dc_i        ({ set_a_dc         }),  // set output offset
+  .set_adc_b_i     (set_b_dc)            ,  //offset canal b in
   .set_last_i      ({ set_a_last       }),  // set last value
   .set_zero_i      ({ set_a_zero       }),  // set output to zero
   .set_ncyc_i      ({set_a_ncyc        }),  // set number of cycle
