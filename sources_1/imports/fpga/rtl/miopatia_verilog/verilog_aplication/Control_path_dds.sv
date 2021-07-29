@@ -9,6 +9,7 @@ module Control_path
     input test3,
     input [7:0] numero_rep,
     input [2:0] num_ciclos,
+    input [7:0] numero_anchura,
     input logic signed [MAGNITUD_WIDTH-1:0] ADC_A,
     input logic signed [MAGNITUD_WIDTH-1:0] ADC_B,
     output logic fin,
