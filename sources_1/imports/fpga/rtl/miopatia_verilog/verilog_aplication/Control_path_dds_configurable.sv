@@ -90,7 +90,7 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
       G2:
       begin
         if (detectado_cero_S==1'b1)
-          if ((contador_5_ciclos>ciclos)&&(address_mem<repeticiones))
+          if ((contador_5_ciclos>ciclos)&&(address_mem!=repeticiones))
           begin
             state1 <= G1B;
             //address_mem<=address_mem+1;
@@ -99,7 +99,7 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
           else
             //		if ((address_mem!=199)||((address_mem==199)&& (contador_5_ciclos<=ciclos)))
             contador_5_ciclos<=contador_5_ciclos+1;
-        if ((address_mem>=repeticiones))
+        if ((address_mem==repeticiones))
         begin
           if ((fin2==1'b1)||(test2==1'b1))
           
@@ -113,7 +113,7 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
         end
         if ((contador_5_ciclos>ciclos)&&(detectado_cero_S==1'b1))
         begin
-            if (address_mem>=repeticiones)
+            if (address_mem==repeticiones)
                 address_mem<=repeticiones;
             else
                 address_mem<=address_mem+paso;
