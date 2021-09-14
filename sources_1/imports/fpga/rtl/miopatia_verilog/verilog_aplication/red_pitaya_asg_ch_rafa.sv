@@ -59,8 +59,17 @@ module red_pitaya_asg_ch_rafa #(
    input                 buf_we_i        ,  //!< buffer write enable
    input      [ 14-1: 0] buf_addr_i      ,  //!< buffer address
    input      [ 14-1: 0] buf_wdata_i     ,  //!< buffer write data
-   output reg [31: 0]    buf_rdata_o     ,  //!< buffer read data
+   output logic signed [31: 0]    buf_rdata_o     ,  //!< buffer read data
    output reg [RSZ-1: 0] buf_rpnt_o      ,  //!< buffer current read pointer
+   
+      // buffer ctrl
+   input                 bufb_we_i        ,  //!< buffer write enable
+   input      [ 14-1: 0] bufb_addr_i      ,  //!< buffer address
+   input      [ 14-1: 0] bufb_wdata_i     ,  //!< buffer write data
+   output logic signed [31: 0]    bufb_rdata_o     ,  //!< buffer read data
+   output reg [RSZ-1: 0] bufb_rpnt_o      ,  //!< buffer current read pointer
+   
+   
    output                fin             ,
    output    [2:0]     estado_pasos_cero ,
    // configuration
@@ -76,7 +85,9 @@ module red_pitaya_asg_ch_rafa #(
    input     [  14-1: 0] set_last_i      ,  //!< set final value in burst
    input                 set_zero_i      ,  //!< set output to zero
    input     [  16-1: 0] set_ncyc_i      ,  //!< set number of cycle
-   input     [  16-1: 0] set_rnum_i      ,  //!< set number of repetitions
+   input     [  16-1: 0] set_rnum_i      ,  //!< set number of frecuencias
+   input     [  16-1: 0] setb_ncyc_i      ,  //!< set number of ancho del detector de cero
+   input     [  16-1: 0] setb_rnum_i      ,  //!< set number salto frecuencias  
    input     [  32-1: 0] set_rdly_i      ,  //!< set delay between repetitions
    input                 set_rgate_i        //!< set external gated repetition
 );
@@ -357,7 +368,8 @@ wire    [13:0]	sin_out;
 
 
 wire    [31:0]	fase;
-wire    [31:0]	modulo, moduloA, moduloB;
+wire    [13:0]	 moduloA, moduloB;
+wire    [31:0]  modulo;
 wire    [31:0] resultado;
 wire    [7:0]  direccion;
 wire    wren;
@@ -451,7 +463,7 @@ wire empezar_chirp= set_once_i ;
 
 	
 Control_path_rafa
-#(.DATA_WIDTH(32), .ADDR_WIDTH(8), .MAGNITUD_WIDTH(14), .ancho_detector(30),.pciclos(1), .FICHERO_INICIAL("freq_log_ideal.dat"))
+#(.DATA_WIDTH(32), .ADDR_WIDTH(8), .MAGNITUD_WIDTH(14), .pancho_detector(30),.pciclos(1), .FICHERO_INICIAL("freq_log_ideal.dat"))
 
 Ucontrol
 (.clk125(dac_clk_i),
@@ -466,10 +478,10 @@ Ucontrol
 .ADC_A(ADC_DA_reg2_fil),
 .ADC_B(ADC_DB_reg2_fil),
 .address_mem(direccion),
-.salto(set_step_i),
+.salto(setb_rnum_i),
 .numero_rep(set_rnum_i),
 .num_ciclos(set_ncyc_i),
-.numero_anchura(set_rdly_i),
+.numero_anchura(setb_ncyc_i),
 .fin(fin),
 .fin2(),
 .VALID_M(wren),
@@ -493,20 +505,44 @@ Ucontrol
 // end
 
 
-reg   [  14-1: 0] result_buf [0:(1<<9)-1] ; // buffer de 512 x 32
+reg  signed [  31: 0] result_buf [0:(1<<8)-1] ; // buffer de 256 x 32
 // write from system or chirp
 always @(posedge dac_clk_i)
 begin
 if (wren)  
     begin
-        result_buf[{1'b0,direccion}] <= modulo ;
-        result_buf[{1'b1,direccion}] <= fase ;
+        result_buf[{direccion}] <= modulo ;
+   //     result_buf[{1'b1,direccion}] <= moduloB;
     end
 end
 
+//logic signed [31: 0]    buf_rdata;
 // read-back
 always @(posedge dac_clk_i)
 //buf_rdata_o <= control[4]?result_buf[buf_addr_i]:dac_buf[buf_addr_i] ;
     buf_rdata_o <= result_buf[buf_addr_i] ;
+    
+    
+//assign    buf_rdata_o= {buf_rdata};
+
+
+reg  signed [  31: 0] resultb_buf [0:(1<<8)-1] ; // buffer de 256 x 32
+// write from system or chirp
+always @(posedge dac_clk_i)
+begin
+if (wren)  
+    begin
+        resultb_buf[{direccion}] <= fase ;
+    end
+end
+
+//logic signed [13: 0]    bufb_rdata;
+// read-back
+always @(posedge dac_clk_i)
+//buf_rdata_o <= control[4]?result_buf[buf_addr_i]:dac_buf[buf_addr_i] ;
+    bufb_rdata_o <= resultb_buf[buf_addr_i] ;
+    
+    
+//assign    buf_rdata_o= {{18{buf_rdata[13]}}, buf_rdata};
 
 endmodule

@@ -235,89 +235,10 @@ connect_debug_port u_ila_0/probe10 [get_nets [list {i_asg/ch_a/Ucontrol/contador
 
 
 
-create_debug_core u_ila_0 ila
-set_property ALL_PROBE_SAME_MU true [get_debug_cores u_ila_0]
-set_property ALL_PROBE_SAME_MU_CNT 1 [get_debug_cores u_ila_0]
-set_property C_ADV_TRIGGER false [get_debug_cores u_ila_0]
-set_property C_DATA_DEPTH 4096 [get_debug_cores u_ila_0]
-set_property C_EN_STRG_QUAL false [get_debug_cores u_ila_0]
-set_property C_INPUT_PIPE_STAGES 0 [get_debug_cores u_ila_0]
-set_property C_TRIGIN_EN false [get_debug_cores u_ila_0]
-set_property C_TRIGOUT_EN false [get_debug_cores u_ila_0]
-set_property port_width 1 [get_debug_ports u_ila_0/clk]
-connect_debug_port u_ila_0/clk [get_nets [list adc_clk]]
-set_property PROBE_TYPE DATA [get_debug_ports u_ila_0/probe0]
-set_property port_width 14 [get_debug_ports u_ila_0/probe0]
 connect_debug_port u_ila_0/probe0 [get_nets [list {i_asg/ch_a/Ucontrol/auxB_reg[13]_0[0]} {i_asg/ch_a/Ucontrol/auxB_reg[13]_0[1]} {i_asg/ch_a/Ucontrol/auxB_reg[13]_0[2]} {i_asg/ch_a/Ucontrol/auxB_reg[13]_0[3]} {i_asg/ch_a/Ucontrol/auxB_reg[13]_0[4]} {i_asg/ch_a/Ucontrol/auxB_reg[13]_0[5]} {i_asg/ch_a/Ucontrol/auxB_reg[13]_0[6]} {i_asg/ch_a/Ucontrol/auxB_reg[13]_0[7]} {i_asg/ch_a/Ucontrol/auxB_reg[13]_0[8]} {i_asg/ch_a/Ucontrol/auxB_reg[13]_0[9]} {i_asg/ch_a/Ucontrol/auxB_reg[13]_0[10]} {i_asg/ch_a/Ucontrol/auxB_reg[13]_0[11]} {i_asg/ch_a/Ucontrol/auxB_reg[13]_0[12]} {i_asg/ch_a/Ucontrol/auxB_reg[13]_0[13]}]]
-create_debug_port u_ila_0 probe
-set_property PROBE_TYPE DATA [get_debug_ports u_ila_0/probe1]
-set_property port_width 14 [get_debug_ports u_ila_0/probe1]
 connect_debug_port u_ila_0/probe1 [get_nets [list {i_asg/ch_a/Ucontrol/auxA_reg[13]_0[0]} {i_asg/ch_a/Ucontrol/auxA_reg[13]_0[1]} {i_asg/ch_a/Ucontrol/auxA_reg[13]_0[2]} {i_asg/ch_a/Ucontrol/auxA_reg[13]_0[3]} {i_asg/ch_a/Ucontrol/auxA_reg[13]_0[4]} {i_asg/ch_a/Ucontrol/auxA_reg[13]_0[5]} {i_asg/ch_a/Ucontrol/auxA_reg[13]_0[6]} {i_asg/ch_a/Ucontrol/auxA_reg[13]_0[7]} {i_asg/ch_a/Ucontrol/auxA_reg[13]_0[8]} {i_asg/ch_a/Ucontrol/auxA_reg[13]_0[9]} {i_asg/ch_a/Ucontrol/auxA_reg[13]_0[10]} {i_asg/ch_a/Ucontrol/auxA_reg[13]_0[11]} {i_asg/ch_a/Ucontrol/auxA_reg[13]_0[12]} {i_asg/ch_a/Ucontrol/auxA_reg[13]_0[13]}]]
-create_debug_port u_ila_0 probe
-set_property PROBE_TYPE DATA [get_debug_ports u_ila_0/probe2]
-set_property port_width 8 [get_debug_ports u_ila_0/probe2]
-connect_debug_port u_ila_0/probe2 [get_nets [list {i_asg/ch_a/Ucontrol/direccion[0]} {i_asg/ch_a/Ucontrol/direccion[1]} {i_asg/ch_a/Ucontrol/direccion[2]} {i_asg/ch_a/Ucontrol/direccion[3]} {i_asg/ch_a/Ucontrol/direccion[4]} {i_asg/ch_a/Ucontrol/direccion[5]} {i_asg/ch_a/Ucontrol/direccion[6]} {i_asg/ch_a/Ucontrol/direccion[7]}]]
-create_debug_port u_ila_0 probe
-set_property PROBE_TYPE TRIGGER [get_debug_ports u_ila_0/probe3]
-set_property port_width 1 [get_debug_ports u_ila_0/probe3]
-connect_debug_port u_ila_0/probe3 [get_nets [list {i_asg/r0_rd[4]}]]
-create_debug_port u_ila_0 probe
-set_property PROBE_TYPE DATA [get_debug_ports u_ila_0/probe4]
-set_property port_width 3 [get_debug_ports u_ila_0/probe4]
-connect_debug_port u_ila_0/probe4 [get_nets [list {i_asg/ch_a/Ucontrol/contador_4_ciclosA[0]} {i_asg/ch_a/Ucontrol/contador_4_ciclosA[1]} {i_asg/ch_a/Ucontrol/contador_4_ciclosA[2]}]]
-create_debug_port u_ila_0 probe
-set_property PROBE_TYPE DATA [get_debug_ports u_ila_0/probe5]
-set_property port_width 8 [get_debug_ports u_ila_0/probe5]
-connect_debug_port u_ila_0/probe5 [get_nets [list {i_asg/ch_a/Ucontrol/counts[0]} {i_asg/ch_a/Ucontrol/counts[1]} {i_asg/ch_a/Ucontrol/counts[2]} {i_asg/ch_a/Ucontrol/counts[3]} {i_asg/ch_a/Ucontrol/counts[4]} {i_asg/ch_a/Ucontrol/counts[5]} {i_asg/ch_a/Ucontrol/counts[6]} {i_asg/ch_a/Ucontrol/counts[7]}]]
-create_debug_port u_ila_0 probe
-set_property PROBE_TYPE DATA [get_debug_ports u_ila_0/probe6]
-set_property port_width 3 [get_debug_ports u_ila_0/probe6]
-connect_debug_port u_ila_0/probe6 [get_nets [list {i_asg/ch_a/Ucontrol/contador_4_ciclosB[0]} {i_asg/ch_a/Ucontrol/contador_4_ciclosB[1]} {i_asg/ch_a/Ucontrol/contador_4_ciclosB[2]}]]
-create_debug_port u_ila_0 probe
-set_property PROBE_TYPE DATA [get_debug_ports u_ila_0/probe7]
-set_property port_width 2 [get_debug_ports u_ila_0/probe7]
-connect_debug_port u_ila_0/probe7 [get_nets [list {i_asg/ch_a/Ucontrol/detect_a[0]} {i_asg/ch_a/Ucontrol/detect_a[1]}]]
-create_debug_port u_ila_0 probe
-set_property PROBE_TYPE DATA [get_debug_ports u_ila_0/probe8]
-set_property port_width 8 [get_debug_ports u_ila_0/probe8]
-connect_debug_port u_ila_0/probe8 [get_nets [list {i_asg/ch_a/Ucontrol/countb[0]} {i_asg/ch_a/Ucontrol/countb[1]} {i_asg/ch_a/Ucontrol/countb[2]} {i_asg/ch_a/Ucontrol/countb[3]} {i_asg/ch_a/Ucontrol/countb[4]} {i_asg/ch_a/Ucontrol/countb[5]} {i_asg/ch_a/Ucontrol/countb[6]} {i_asg/ch_a/Ucontrol/countb[7]}]]
-create_debug_port u_ila_0 probe
-set_property PROBE_TYPE DATA [get_debug_ports u_ila_0/probe9]
-set_property port_width 2 [get_debug_ports u_ila_0/probe9]
-connect_debug_port u_ila_0/probe9 [get_nets [list {i_asg/ch_a/Ucontrol/detect_b[0]} {i_asg/ch_a/Ucontrol/detect_b[1]}]]
-create_debug_port u_ila_0 probe
-set_property PROBE_TYPE DATA [get_debug_ports u_ila_0/probe10]
-set_property port_width 14 [get_debug_ports u_ila_0/probe10]
-connect_debug_port u_ila_0/probe10 [get_nets [list {i_asg/ch_a/Ucontrol/auxS_reg[13]_0[0]} {i_asg/ch_a/Ucontrol/auxS_reg[13]_0[1]} {i_asg/ch_a/Ucontrol/auxS_reg[13]_0[2]} {i_asg/ch_a/Ucontrol/auxS_reg[13]_0[3]} {i_asg/ch_a/Ucontrol/auxS_reg[13]_0[4]} {i_asg/ch_a/Ucontrol/auxS_reg[13]_0[5]} {i_asg/ch_a/Ucontrol/auxS_reg[13]_0[6]} {i_asg/ch_a/Ucontrol/auxS_reg[13]_0[7]} {i_asg/ch_a/Ucontrol/auxS_reg[13]_0[8]} {i_asg/ch_a/Ucontrol/auxS_reg[13]_0[9]} {i_asg/ch_a/Ucontrol/auxS_reg[13]_0[10]} {i_asg/ch_a/Ucontrol/auxS_reg[13]_0[11]} {i_asg/ch_a/Ucontrol/auxS_reg[13]_0[12]} {i_asg/ch_a/Ucontrol/auxS_reg[13]_0[13]}]]
-create_debug_port u_ila_0 probe
-set_property PROBE_TYPE DATA [get_debug_ports u_ila_0/probe11]
-set_property port_width 8 [get_debug_ports u_ila_0/probe11]
-connect_debug_port u_ila_0/probe11 [get_nets [list {i_asg/ch_a/Ucontrol/counta[0]} {i_asg/ch_a/Ucontrol/counta[1]} {i_asg/ch_a/Ucontrol/counta[2]} {i_asg/ch_a/Ucontrol/counta[3]} {i_asg/ch_a/Ucontrol/counta[4]} {i_asg/ch_a/Ucontrol/counta[5]} {i_asg/ch_a/Ucontrol/counta[6]} {i_asg/ch_a/Ucontrol/counta[7]}]]
-create_debug_port u_ila_0 probe
-set_property PROBE_TYPE DATA [get_debug_ports u_ila_0/probe12]
-set_property port_width 3 [get_debug_ports u_ila_0/probe12]
-connect_debug_port u_ila_0/probe12 [get_nets [list {i_asg/ch_a/Ucontrol/state1[0]} {i_asg/ch_a/Ucontrol/state1[1]} {i_asg/ch_a/Ucontrol/state1[2]}]]
-create_debug_port u_ila_0 probe
-set_property PROBE_TYPE DATA [get_debug_ports u_ila_0/probe13]
-set_property port_width 1 [get_debug_ports u_ila_0/probe13]
-connect_debug_port u_ila_0/probe13 [get_nets [list {i_asg/ch_a/Ucontrol/detect_s[0]}]]
-create_debug_port u_ila_0 probe
-set_property PROBE_TYPE DATA [get_debug_ports u_ila_0/probe14]
-set_property port_width 1 [get_debug_ports u_ila_0/probe14]
-connect_debug_port u_ila_0/probe14 [get_nets [list i_asg/ch_a/Ucontrol/p_0_in]]
-create_debug_port u_ila_0 probe
-set_property PROBE_TYPE DATA [get_debug_ports u_ila_0/probe15]
-set_property port_width 1 [get_debug_ports u_ila_0/probe15]
-connect_debug_port u_ila_0/probe15 [get_nets [list {i_asg/ch_a/Ucontrol/state2_reg_n_0_[0]}]]
-create_debug_port u_ila_0 probe
-set_property PROBE_TYPE DATA [get_debug_ports u_ila_0/probe16]
-set_property port_width 1 [get_debug_ports u_ila_0/probe16]
-connect_debug_port u_ila_0/probe16 [get_nets [list {i_asg/ch_a/Ucontrol/state2_reg_n_0_[1]}]]
-create_debug_port u_ila_0 probe
-set_property PROBE_TYPE DATA [get_debug_ports u_ila_0/probe17]
-set_property port_width 1 [get_debug_ports u_ila_0/probe17]
-connect_debug_port u_ila_0/probe17 [get_nets [list {i_asg/ch_a/Ucontrol/state2_reg_n_0_[2]}]]
-set_property C_CLK_INPUT_FREQ_HZ 300000000 [get_debug_cores dbg_hub]
-set_property C_ENABLE_CLK_DIVIDER false [get_debug_cores dbg_hub]
-set_property C_USER_SCAN_CHAIN 1 [get_debug_cores dbg_hub]
-connect_debug_port dbg_hub/clk [get_nets adc_clk]
+
+
+connect_debug_port u_ila_0/probe9 [get_nets [list {i_asg/r0_rd[4]}]]
+connect_debug_port u_ila_0/probe10 [get_nets [list {i_asg/ch_a/Ucontrol/direccion[0]} {i_asg/ch_a/Ucontrol/direccion[1]} {i_asg/ch_a/Ucontrol/direccion[2]} {i_asg/ch_a/Ucontrol/direccion[3]} {i_asg/ch_a/Ucontrol/direccion[4]} {i_asg/ch_a/Ucontrol/direccion[5]} {i_asg/ch_a/Ucontrol/direccion[6]} {i_asg/ch_a/Ucontrol/direccion[7]}]]
+

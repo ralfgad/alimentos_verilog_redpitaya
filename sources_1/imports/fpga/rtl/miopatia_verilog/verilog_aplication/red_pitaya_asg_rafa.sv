@@ -95,8 +95,8 @@ reg   [  32-1: 0] set_a_rdly   , set_b_rdly   ;
 reg               set_a_rgate  , set_b_rgate  ;
 reg               buf_a_we     , buf_b_we     ;
 reg   [ RSZ-1: 0] buf_a_addr   , buf_b_addr   ;
-wire  [  14-1: 0]  buf_b_rdata                ;
-wire  [ 31: 0] buf_a_rdata                    ;
+wire  [ 31: 0]    buf_b_rdata                 ;
+wire  [ 31: 0]    buf_a_rdata                 ;
 wire  [ RSZ-1: 0] buf_a_rpnt   , buf_b_rpnt   ;
 reg   [  32-1: 0] buf_a_rpnt_rd, buf_b_rpnt_rd;
 reg               trig_a_sw    , trig_b_sw    ;
@@ -164,6 +164,13 @@ red_pitaya_asg_ch_rafa  #(.RSZ (RSZ)) ch_a (
   .buf_wdata_i     ({sys_wdata[14-1:0]}),  // buffer write data
   .buf_rdata_o     ({buf_a_rdata       }),  // buffer read data
   .buf_rpnt_o      ({ buf_a_rpnt       }),  // buffer current read pointer
+  
+  .bufb_we_i        ({buf_b_we           }),  // buffer buffer write
+  .bufb_addr_i      ({buf_b_addr         }),  // buffer address
+  .bufb_wdata_i     ({sys_wdata[14-1:0]  }),  // buffer write data
+  .bufb_rdata_o     ({buf_b_rdata        }),  // buffer read data
+  .bufb_rpnt_o      ({buf_b_rpnt         }),  // buffer current read pointer
+
   // configuration
    .fin            ({    fina          }),  // set table data size
    .estado_pasos_cero( estado_pasos_cero),
@@ -180,6 +187,8 @@ red_pitaya_asg_ch_rafa  #(.RSZ (RSZ)) ch_a (
   .set_zero_i      ({ set_a_zero       }),  // set output to zero
   .set_ncyc_i      ({set_a_ncyc        }),  // set number of cycle
   .set_rnum_i      ({set_a_rnum        }),  // set number of repetitions
+  .setb_ncyc_i      ({set_b_ncyc        }),  // set number of cycle
+  .setb_rnum_i      ({set_b_rnum        }),  // set number of repetitions
   .set_rdly_i      ({ set_a_rdly       }),  // set delay between repetitions
   .set_rgate_i     ({ set_a_rgate      })   // set external gated repetition
 );
@@ -319,7 +328,7 @@ end else begin
      20'h00048 : begin sys_ack <= sys_en;          sys_rdata <= {{32-14{1'b0}},set_b_last}         ; end
 
      20'h1zzzz : begin sys_ack <= ack_dly;         sys_rdata <= {buf_a_rdata}                      ; end
-     20'h2zzzz : begin sys_ack <= ack_dly;         sys_rdata <= {{32-14{1'b0}},buf_b_rdata}        ; end
+     20'h2zzzz : begin sys_ack <= ack_dly;         sys_rdata <= {buf_b_rdata}                      ; end
 
        default : begin sys_ack <= sys_en;          sys_rdata <=  32'h0                             ; end
    endcase
