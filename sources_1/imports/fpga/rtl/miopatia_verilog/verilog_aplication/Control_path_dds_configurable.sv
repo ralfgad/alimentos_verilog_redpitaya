@@ -48,15 +48,19 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
   logic [2:0] ciclos;
   logic [7:0] repeticiones;
   logic [7:0] ancho_detector;
-  logic [2:0] paso;
+  logic [7:0] paso;
+  logic [7:0] anchura_variable;
   
+  
+  assign anchura_variable=address_mem<100?numero_anchura:30;
   
   assign ciclos=test3?num_ciclos:pciclos;
   assign repeticiones=test3?numero_rep:225; //numero de puntos que tenemos
-  assign ancho_detector=test3?numero_anchura:pancho_detector;
+  assign ancho_detector=test3?anchura_variable:pancho_detector;
   // assign ancho_detector=pancho_detector;
-  assign paso=test3?salto:3'b001;
+  //assign paso=test3?{{5{1'b0}},salto}:8'b00000001;
   // assign paso=1;
+  assign paso=8'b00000001;
   assign detectado_cero_S=detectado_cero_Stest;
   assign detectado_cero_A=detectado_cero_Atest;
   assign detectado_cero_B=detectado_cero_Btest;
@@ -90,7 +94,7 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
       G2:
       begin
         if (detectado_cero_S==1'b1)
-          if ((contador_5_ciclos>ciclos)&&(address_mem!=repeticiones))
+          if ((contador_5_ciclos>ciclos)&&(address_mem<repeticiones))
           begin
             state1 <= G1B;
             //address_mem<=address_mem+1;
@@ -99,7 +103,7 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
           else
             //		if ((address_mem!=199)||((address_mem==199)&& (contador_5_ciclos<=ciclos)))
             contador_5_ciclos<=contador_5_ciclos+1;
-        if ((address_mem==repeticiones))
+        if ((address_mem>=repeticiones))
         begin
           if ((fin2==1'b1)||(test2==1'b1))
           
@@ -113,7 +117,7 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
         end
         if ((contador_5_ciclos>ciclos)&&(detectado_cero_S==1'b1))
         begin
-            if (address_mem==repeticiones)
+            if (address_mem>=repeticiones)
                 address_mem<=repeticiones;
             else
                 address_mem<=address_mem+paso;
