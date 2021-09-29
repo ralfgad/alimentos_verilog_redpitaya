@@ -7,15 +7,17 @@ module Control_path_rafa
     input test1,
     input test2,
     input test3,
-    input [2:0] salto,
+    input [7:0] salto,
     input [7:0] numero_rep,
     input [2:0] num_ciclos,
-    input [7:0] numero_anchura,
+    input [15:0] numero_anchura,
     input logic signed [MAGNITUD_WIDTH-1:0] ADC_A,
     input logic signed [MAGNITUD_WIDTH-1:0] ADC_B,
     output logic fin,
     output logic fin2,
     output logic VALID_M,
+    output logic VALID_P,
+    
     output logic [DATA_WIDTH-1:0] incrementado,
     output logic signed [MAGNITUD_WIDTH-1:0] DAC_S_registrado,
     output logic signed[31:0] MODULO,
@@ -23,17 +25,27 @@ module Control_path_rafa
     output logic signed[31:0] MODULOB,
     output logic [7:0] address_mem,
     output logic [7:0] address_mem2,
+    output logic [7:0] address_mem3,    
+
     output logic [2:0] estado_pasos_cero,
-    output logic signed [31:0] PHASE
+    output logic signed [31:0] PHASE,
+    output logic signed [31:0] PHASEA,
+    output logic signed [31:0] PHASEB
    );
 parameter G0=3'b000, G1=3'b001, G1B=3'b100, G2=3'b010, G3=3'b011;
-parameter S0=3'b000, S1=3'b001, S4=3'b100,  S3=3'b011;
+parameter S0=3'b000, S1=3'b001, S4=3'b100,  S3=3'b011, S5=3'b101;
 parameter D0=2'b00, D1=2'b01, D2=2'b10;
+  localparam EXTENSION=DATA_WIDTH-MAGNITUD_WIDTH;
   logic signed [MAGNITUD_WIDTH-1:0] DAC_A;
+  logic signed [MAGNITUD_WIDTH-1:0] DAC_A_cos;
+  logic signed [DATA_WIDTH-1:0] DAC_A_ext;
+  logic signed [DATA_WIDTH-1:0] DAC_A_cos_ext;
   //generacion
   logic detectado_cero_S, detectado_cero_Snormal,detectado_cero_Stest;
   logic detectado_cero_A, detectado_cero_Anormal,detectado_cero_Atest;
   logic detectado_cero_B, detectado_cero_Bnormal,detectado_cero_Btest;
+  
+  logic [7:0] address_mem3_a1,address_mem3_a2;
   
   // enum  logic [2:0] {G0, G1,G1B, G2,G3} state1;
 
@@ -47,12 +59,12 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
   logic [2:0] contador_5_ciclos;
   logic [2:0] ciclos;
   logic [7:0] repeticiones;
-  logic [7:0] ancho_detector;
+  logic [15:0] ancho_detector;
   logic [7:0] paso;
-  logic [7:0] anchura_variable;
+  logic [15:0] anchura_variable;
   
   
-  assign anchura_variable=address_mem<100?numero_anchura:30;
+  assign anchura_variable=address_mem<salto?numero_anchura:(address_mem>200?10:30);
   
   assign ciclos=test3?num_ciclos:pciclos;
   assign repeticiones=test3?numero_rep:225; //numero de puntos que tenemos
@@ -105,7 +117,7 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
             contador_5_ciclos<=contador_5_ciclos+1;
         if ((address_mem>=repeticiones))
         begin
-          if ((fin2==1'b1)||(test2==1'b1))
+          if ((fin2==1'b1)) //||(test2==1'b1))
           
           begin
             state1<=G3;
@@ -196,7 +208,7 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
   assign detectado_cero_Anormal= (~|shifterA[ancho_detector-2:0]) && (shifterA[(ancho_detector-1)]);
  */
   logic [1:0]  detect_a, detect_b, detect_s;
-  logic [7:0] counta;
+  logic [15:0] counta;
   
    always_ff @(posedge clk125 or negedge areset_n)
   begin
@@ -276,7 +288,7 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
   
 */  
  // enum logic [1:0] {D0 , D1}  detect_b;
-  logic [7:0] countb;
+  logic [15:0] countb;
   
    always_ff @(posedge clk125 or negedge areset_n)
   begin
@@ -352,7 +364,7 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
 
 */
 
-  logic [7:0] counts;
+  logic [15:0] counts;
   
    always_ff @(posedge clk125 or negedge areset_n)
   begin
@@ -426,6 +438,23 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
   logic signed [31:0] PHASE_PRE;
   logic signed     [31:0]                      temporal;
   
+  //empezamos cosas nuevas
+  
+  logic signed [63:0] A_proyeccion_0_prod;
+  logic signed [63:0] A_proyeccion_1_prod;
+  logic signed [63:0] B_proyeccion_0_prod;
+  logic signed [63:0] B_proyeccion_1_prod;
+  
+  logic signed [63:0] A_proyeccion_0;
+  logic signed [63:0] A_proyeccion_1;
+  logic signed [63:0] B_proyeccion_0;
+  logic signed [63:0] B_proyeccion_1;
+  
+  logic signed [63:0] A_proyeccion_0_def;
+  logic signed [63:0] A_proyeccion_1_def;
+  logic signed [63:0] B_proyeccion_0_def;
+  logic signed [63:0] B_proyeccion_1_def; 
+  
   always_ff@(posedge clk125 or negedge areset_n)
   begin
     if(!areset_n)
@@ -442,6 +471,11 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
       MODULO_POSB<='0;
       MODULO_NEGA<='0;
       MODULO_NEGB<='0;
+      A_proyeccion_0<='0;
+      A_proyeccion_1<='0;
+      B_proyeccion_0<='0;
+      B_proyeccion_1<='0;
+                  
     end
     else
     case(state2)
@@ -454,13 +488,19 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
         MODULO_POSB<='0;
         MODULO_NEGA<='0;
         MODULO_NEGB<='0;
+        A_proyeccion_0<='0;
+        A_proyeccion_1<='0;
+        B_proyeccion_0<='0;
+        B_proyeccion_1<='0;        
         contador_4_ciclosA<='0;
         contador_4_ciclosB<='0;
         if (state1==G1 || state1==G1B)
           state2 <= S1;
       end
       S1:
+      /*
       begin
+      
         if (detectado_cero_A==1'b1  )
         begin
           contador_4_ciclosA<=contador_4_ciclosA+1;
@@ -480,6 +520,40 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
             // diferencia_pos<=diferencia_pos+1;
           end
         end
+      end
+      */
+      begin
+        case ({detectado_cero_A,detectado_cero_B})
+        2'b10:
+        begin
+          contador_4_ciclosA<=contador_4_ciclosA+1;
+          if (contador_4_ciclosA==ciclos && contador_4_ciclosB==ciclos)
+          begin
+            state2 <= S3;
+            //diferencia_neg<=diferencia_neg+1;
+          end
+        end
+
+        2'b01:
+        begin
+          contador_4_ciclosB<=contador_4_ciclosB+1;
+          if (contador_4_ciclosA==ciclos && contador_4_ciclosB==ciclos)
+          begin
+            state2 <= S4;
+            // diferencia_pos<=diferencia_pos+1;
+          end
+        end
+        2'b11:
+        begin
+          contador_4_ciclosB<=contador_4_ciclosB+1;
+          contador_4_ciclosA<=contador_4_ciclosA+1;
+          if (contador_4_ciclosA==ciclos && contador_4_ciclosB==ciclos)
+          begin
+            state2 <= S5;
+            // diferencia_pos<=diferencia_pos+1;
+          end
+        end
+        endcase
       end
       /*	S2A:
               begin
@@ -524,16 +598,30 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
         if (ADC_B_registrado<  MODULO_NEGB)
           MODULO_NEGB<=ADC_B_registrado;
         diferencia_pos<=diferencia_pos+1;
+        //A_proyeccion_0_prod=ADC_A_registrado* DAC_A_ext;
+        //A_proyeccion_1_prod=ADC_A_registrado* DAC_A_cos_ext;
+        //B_proyeccion_0_prod=ADC_B_registrado* DAC_A_ext;
+        //B_proyeccion_1_prod=ADC_B_registrado* DAC_A_cos_ext;
+        A_proyeccion_0<=ADC_A_registrado* DAC_A_ext+ A_proyeccion_0;
+        A_proyeccion_1<=ADC_A_registrado* DAC_A_cos_ext+A_proyeccion_1;
+        B_proyeccion_0<=ADC_B_registrado* DAC_A_ext+B_proyeccion_0; 
+        B_proyeccion_1<=ADC_B_registrado* DAC_A_cos_ext+B_proyeccion_1;                      
+        
+        
         if (detectado_cero_A)
         begin
           contador_4_ciclosA<=contador_4_ciclosA+1;
           diferencia_pos<='0;
-          if ((contador_4_ciclosA == ciclos+2) && (contador_4_ciclosB == ciclos+3))
+          if ((contador_4_ciclosA == ciclos+1) && (contador_4_ciclosB == ciclos+2))
           begin
             state2<=S0;
             fin2<=1'b1;
             MODULOA_pre<=(MODULO_POSA-MODULO_NEGA)>>>2;
             MODULOB_pre<=(MODULO_POSB-MODULO_NEGB)>>>2;
+            A_proyeccion_0_def<=A_proyeccion_0;
+            A_proyeccion_1_def<=A_proyeccion_1;
+            B_proyeccion_0_def<=B_proyeccion_0;
+            B_proyeccion_1_def<=B_proyeccion_1;
             //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
             PHASE_PRE<=(temporal);
             //contador_4_ciclosB<='0;
@@ -543,12 +631,17 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
         if (detectado_cero_B)
         begin
           contador_4_ciclosB<=contador_4_ciclosB+1;
-          if ((contador_4_ciclosB == ciclos+2) && (contador_4_ciclosA == ciclos+3))
+          if ((contador_4_ciclosB == ciclos+1) && (contador_4_ciclosA == ciclos+2))
           begin
             state2<=S0;
             fin2<=1'b1;
             MODULOA_pre<=(MODULO_POSA-MODULO_NEGA)>>>2;
             MODULOB_pre<=(MODULO_POSB-MODULO_NEGB)>>>2;
+            
+            A_proyeccion_0_def<=A_proyeccion_0;
+            A_proyeccion_1_def<=A_proyeccion_1;
+            B_proyeccion_0_def<=B_proyeccion_0;
+            B_proyeccion_1_def<=B_proyeccion_1;            
             //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
             PHASE_PRE<=(temporal);
             //contador_4_ciclosB<='0;
@@ -565,12 +658,17 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
         begin
           contador_4_ciclosB<=contador_4_ciclosB+1;
           contador_4_ciclosA<=contador_4_ciclosA+1;
-          if ((contador_4_ciclosB == ciclos+2) && (contador_4_ciclosA == ciclos+2))
+          if ((contador_4_ciclosB == ciclos+1) && (contador_4_ciclosA == ciclos+1))
           begin
             state2<=S0;
             fin2<=1'b1;
             MODULOA_pre<=(MODULO_POSA-MODULO_NEGA)>>>2;
             MODULOB_pre<=(MODULO_POSB-MODULO_NEGB)>>>2;
+            
+            A_proyeccion_0_def<=A_proyeccion_0;
+            A_proyeccion_1_def<=A_proyeccion_1;
+            B_proyeccion_0_def<=B_proyeccion_0;
+            B_proyeccion_1_def<=B_proyeccion_1;            
             //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
             PHASE_PRE<=(temporal);
             //contador_4_ciclosB<='0;
@@ -590,16 +688,29 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
           MODULO_POSB<=ADC_B_registrado;
         if (ADC_B_registrado<  MODULO_NEGB)
           MODULO_NEGB<=ADC_B_registrado;
+        //A_proyeccion_0_prod=ADC_A_registrado* DAC_A_ext;
+        //A_proyeccion_1_prod=ADC_A_registrado* DAC_A_cos_ext;
+        //B_proyeccion_0_prod=ADC_B_registrado* DAC_A_ext;
+        //B_proyeccion_1_prod=ADC_B_registrado* DAC_A_cos_ext;
+        A_proyeccion_0<=ADC_A_registrado* DAC_A_ext+ A_proyeccion_0;
+        A_proyeccion_1<=ADC_A_registrado* DAC_A_cos_ext+A_proyeccion_1;
+        B_proyeccion_0<=ADC_B_registrado* DAC_A_ext+B_proyeccion_0; 
+        B_proyeccion_1<=ADC_B_registrado* DAC_A_cos_ext+B_proyeccion_1;                        
         if (detectado_cero_B)
         begin
           contador_4_ciclosB<=contador_4_ciclosB+1;
           diferencia_neg<='0;
-          if ((contador_4_ciclosB == ciclos+2) && (contador_4_ciclosA == ciclos+3) )
+          if ((contador_4_ciclosB == ciclos+1) && (contador_4_ciclosA == ciclos+2) )
           begin
             state2<=S0;
             fin2<=1'b1;
             MODULOA_pre<=(MODULO_POSA-MODULO_NEGA)>>>2;
             MODULOB_pre<=(MODULO_POSB-MODULO_NEGB)>>>2;
+            
+            A_proyeccion_0_def<=A_proyeccion_0;
+            A_proyeccion_1_def<=A_proyeccion_1;
+            B_proyeccion_0_def<=B_proyeccion_0;
+            B_proyeccion_1_def<=B_proyeccion_1;            
             //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
             PHASE_PRE<=(temporal);
             //contador_4_ciclosA<='0;
@@ -609,12 +720,17 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
         if (detectado_cero_A)
         begin
           contador_4_ciclosA<=contador_4_ciclosA+1;
-          if ((contador_4_ciclosA==ciclos+2) && (contador_4_ciclosB==ciclos+3)) //esto obliga a dividir por 4 los desfases
+          if ((contador_4_ciclosA==ciclos+1) && (contador_4_ciclosB==ciclos+2)) //esto obliga a dividir por 4 los desfases
           begin
             state2<=S0;
             fin2<=1'b1;
             MODULOA_pre<=(MODULO_POSA-MODULO_NEGA)>>>2;
             MODULOB_pre<=(MODULO_POSB-MODULO_NEGB)>>>2;
+            
+            A_proyeccion_0_def<=A_proyeccion_0;
+            A_proyeccion_1_def<=A_proyeccion_1;
+            B_proyeccion_0_def<=B_proyeccion_0;
+            B_proyeccion_1_def<=B_proyeccion_1;            
             //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
             PHASE_PRE<=(temporal);
             //contador_4_ciclosA<='0;
@@ -630,12 +746,17 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
         begin
           contador_4_ciclosB<=contador_4_ciclosB+1;
           contador_4_ciclosA<=contador_4_ciclosA+1;
-          if ((contador_4_ciclosB == ciclos+2) && (contador_4_ciclosA == ciclos+2))
+          if ((contador_4_ciclosB == ciclos+1) && (contador_4_ciclosA == ciclos+1))
           begin
             state2<=S0;
             fin2<=1'b1;
             MODULOA_pre<=(MODULO_POSA-MODULO_NEGA)>>>2;
             MODULOB_pre<=(MODULO_POSB-MODULO_NEGB)>>>2;
+            
+            A_proyeccion_0_def<=A_proyeccion_0;
+            A_proyeccion_1_def<=A_proyeccion_1;
+            B_proyeccion_0_def<=B_proyeccion_0;
+            B_proyeccion_1_def<=B_proyeccion_1;            
             //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
             PHASE_PRE<=(temporal);
             //contador_4_ciclosB<='0;
@@ -643,7 +764,42 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
         end
       end
 
-
+  S5:     //coincidentes
+      begin
+        // diferencia_neg <= diferencia_neg +1;
+        if (ADC_A_registrado>  MODULO_POSA)
+          MODULO_POSA<=ADC_A_registrado;
+        if (ADC_A_registrado<  MODULO_NEGA)
+          MODULO_NEGA<=ADC_A_registrado;
+        if (ADC_B_registrado>  MODULO_POSB)
+          MODULO_POSB<=ADC_B_registrado;
+        if (ADC_B_registrado<  MODULO_NEGB)
+          MODULO_NEGB<=ADC_B_registrado;
+        A_proyeccion_0<=ADC_A_registrado* DAC_A_ext+ A_proyeccion_0;
+        A_proyeccion_1<=ADC_A_registrado* DAC_A_cos_ext+A_proyeccion_1;
+        B_proyeccion_0<=ADC_B_registrado* DAC_A_ext+B_proyeccion_0; 
+        B_proyeccion_1<=ADC_B_registrado* DAC_A_cos_ext+B_proyeccion_1;                          
+        if ((detectado_cero_B) || (detectado_cero_A))
+        begin
+          contador_4_ciclosB<=contador_4_ciclosB+1;
+          contador_4_ciclosA<=contador_4_ciclosA+1;
+          if ((contador_4_ciclosB == ciclos+1) && (contador_4_ciclosA == ciclos+1))
+          begin
+            state2<=S0;
+            fin2<=1'b1;
+            MODULOA_pre<=(MODULO_POSA-MODULO_NEGA)>>>2;
+            MODULOB_pre<=(MODULO_POSB-MODULO_NEGB)>>>2;
+            
+            A_proyeccion_0_def<=A_proyeccion_0;
+            A_proyeccion_1_def<=A_proyeccion_1;
+            B_proyeccion_0_def<=B_proyeccion_0;
+            B_proyeccion_1_def<=B_proyeccion_1;            
+            //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
+            PHASE_PRE<='0;
+            //contador_4_ciclosB<='0;
+          end
+        end
+      end
 
 
 
@@ -655,10 +811,17 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
 
   logic [31:0] cociente;
   logic findiv;
+  logic finarctan;
+  logic [31:0] fasea;
+  logic [31:0] faseb;
+  logic   [31:0] PHASE_alternativa1, PHASE_alternativa2;
+  
+  logic pulso_fases, pulso_fases_reg,pulsito;
+  logic valid_p_alternativa1, valid_p_alternativa2;
 
 
   Divisor_Alg2 #(.tamanyo(32))
-               divisor0
+               divisor_m
                (
                  .CLK(clk125),
                  .RSTa(areset_n),
@@ -672,8 +835,42 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
                  .Done(findiv)
 
                );
+ /*              
+  Divisor_Alg2 #(.tamanyo(32))
+               divisor_fa
+               (
+                 .CLK(clk125),
+                 .RSTa(areset_n),
+                 .Start(fin2),
 
-  fifo_un_fichero #(.LENGTH(32), .SIZE(8))  DUV (.CLOCK(clk125),
+                 .Num(A_proyeccion_1_def<<16),
+                 .Den(A_proyeccion_0_def),
+
+                 .Coc(fasea),
+                 .Res(),
+                 .Done(finarca)
+
+               );
+ Divisor_Alg2 #(.tamanyo(32))
+               divisor_fb
+               (
+                 .CLK(clk125),
+                 .RSTa(areset_n),
+                 .Start(fin2),
+
+                 .Num(B_proyeccion_1_def<<16),
+                 .Den(B_proyeccion_0_def),
+
+                 .Coc(faseb),
+                 .Res(),
+                 .Done(finarcb)
+
+               );             
+               
+*/
+    
+
+  fifo_un_fichero #(.LENGTH(32), .SIZE(8))  FIFO_M (.CLOCK(clk125),
                   .RESET_N(areset_n),
                   .DATA_IN(address_mem-1),
                   .READ(findiv),
@@ -682,45 +879,124 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
                   .F_FULL_N(),
                   .F_EMPTY_N(),
                   .USE_DW(),
-                  .DATA_OUT(address_mem2));
+                  .DATA_OUT(address_mem3_a1));
+                  
+  fifo_un_fichero #(.LENGTH(32), .SIZE(8))  FIFO_Pa (.CLOCK(clk125),
+                  .RESET_N(areset_n),
+                  .DATA_IN(address_mem-1),
+                  .READ(finarctan),
+                 // .READ(pulsito),
+                  .WRITE(fin2),
+                  .CLEAR_N(1'b1),
+                  .F_FULL_N(),
+                  .F_EMPTY_N(),
+                  .USE_DW(),
+                  .DATA_OUT(address_mem3_a2));
+              
+  
+  
+  //si tuviera más área podria impementar el arco tangente
+                  
+  /*
+  fifo_un_fichero #(.LENGTH(32), .SIZE(8))  FIFO_P (.CLOCK(clk125),
+                  .RESET_N(areset_n),
+                  .DATA_IN(address_mem-1),
+                  .READ(finarctan),
+                  .WRITE(fin2),
+                  .CLEAR_N(1'b1),
+                  .F_FULL_N(),
+                  .F_EMPTY_N(),
+                  .USE_DW(),
+                  .DATA_OUT(address_mem3));
+ */                
+cordic_def ARCTANH_A      
+(  
+  .aclk(clk125),              // input wire aclk
+  .aresetn(areset_n),                                  // input wire aresetn
+  .s_axis_cartesian_tvalid(fin2),  // input wire s_axis_cartesian_tvalid
+  .s_axis_cartesian_tdata({A_proyeccion_1_def[47:0],A_proyeccion_0_def[47:0]}),    // input wire [31 : 0] s_axis_cartesian_tdata
+//  .s_axis_cartesian_tready(s_axis_cartesian_tready),   
+  .m_axis_dout_tvalid(finarctan),            // output wire m_axis_dout_tvalid
+  .m_axis_dout_tdata(fasea)              // output wire [15 : 0] m_axis_dout_tdata
+);                  
 
+cordic_def ARCTANH_B      
+(  
+  .aclk(clk125),              // input wire aclk
+  .aresetn(areset_n),                                  // input wire aresetn
+  .s_axis_cartesian_tvalid(fin2),  // input wire s_axis_cartesian_tvalid
+  .s_axis_cartesian_tdata({B_proyeccion_1_def[47:0],B_proyeccion_0_def[47:0]}),    // input wire [31 : 0] s_axis_cartesian_tdata
+ // .s_axis_cartesian_tready(s_axis_cartesian_tready),   
+  // .m_axis_dout_tvalid(),            // output wire m_axis_dout_tvalid
+  .m_axis_dout_tdata(faseb)              // output wire [15 : 0] m_axis_dout_tdata
+);  
+
+
+  always_ff@(posedge clk125 or negedge areset_n)
+
+    if(!areset_n)
+	begin
+      //		MODULO<='0;
+		PHASE_alternativa2<='0;
+	end
+    else
+    begin
+      valid_p_alternativa2<=finarctan;
+      if (finarctan)
+      begin
+        //MODULO<=cociente-shunt;
+        // MODULO<=MODULOA_pre;
+        // PHASE <=MODULOB_pre;
+        PHASE_alternativa2 <=fasea-faseb;        
+      end
+    end    
 
   always_ff@(posedge clk125 or negedge areset_n)
 
     if(!areset_n)
 	begin
       		MODULO<='0;
-		PHASE<='0;
+		PHASE_alternativa1<='0;
+
 	end
     else
     begin
       VALID_M<=findiv;
+      valid_p_alternativa1<=findiv;
       if (findiv)
       begin
         MODULO<=cociente-shunt;
-        // MODULO<=MODULOA_pre;
-        // PHASE <=MODULOB_pre;
-        PHASE <=PHASE_PRE;        
+
+        PHASE_alternativa1 <=PHASE_PRE; 
+    
       end
     end
+ 
+ assign PHASE=test2?PHASE_alternativa1:PHASE_alternativa2;   
+ assign VALID_P=test2?valid_p_alternativa1:valid_p_alternativa2;   
+ assign address_mem2=address_mem3_a1;
+ assign address_mem3=test2?address_mem3_a1:address_mem3_a2;
 /*
   always_ff@(posedge clk125 or negedge areset_n)
 
     if(!areset_n)
 	begin
-      		MODULOA<='0;
-      		MODULOB<='0;      		
-		PHASE<='0;
+   		pulso_fases<=1'b0;
+   		pulso_fases_reg<=1'b0;
+		PHASEA<='0;
+		PHASEB<='0;
+		pulsito<=1'b0;
 	end
     else
     begin
-      VALID_M<=fin2;
-      if (fin2)
+      pulso_fases<= (pulso_fases|finarca|finarcb)&(!finarca)& (!finarcb);
+      pulso_fases_reg<=pulso_fases;
+      pulsito<=(pulso_fases==1'b0)&(&pulso_fases_reg==1'b1);
+      VALID_P<=pulsito;
+      if (pulsito)
       begin
-        MODULO<=cociente-shunt;
-        MODULOA<=MODULOA_pre;
-        MODULOB<=MODULOB_pre;
-        PHASE<=PHASE_PRE;
+        PHASEB<=faseb;
+        PHASEA<=fasea;
       end
     end
 */
@@ -744,11 +1020,12 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
                        .clken     (1'b1),     //  in.clken
                        .phi_inc_i (incrementado), //    .phi_inc_i
                        .fsin_o    (DAC_A),    // out.fsin_o
-                       //.fcos_o    (cos_out),
+                       .fcos_o    (DAC_A_cos),
                        .out_valid (ovalid)  //    .out_valid
                      );
 
-
+assign DAC_A_ext={{EXTENSION{DAC_A[MAGNITUD_WIDTH-1]}},DAC_A};
+assign DAC_A_cos_ext={{EXTENSION{DAC_A_cos[MAGNITUD_WIDTH-1]}},DAC_A_cos};
   // Declare the ROM variable
   logic [DATA_WIDTH-1:0] rom[2**ADDR_WIDTH-1:0];
 
@@ -765,6 +1042,7 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
 
   assign incrementado = rom[address_mem]; //puro combinacional
   assign estado_pasos_cero= test1? state2: state1;
+
 
 endmodule
 

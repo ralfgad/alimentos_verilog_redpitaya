@@ -367,12 +367,12 @@ wire    [13:0]	sin_out;
 
 
 
-wire    [31:0]	fase;
+wire    [31:0]	fasea,faseb,fase;
 wire    [13:0]	 moduloA, moduloB;
 wire    [31:0]  modulo;
 wire    [31:0] resultado;
-wire    [7:0]  direccion;
-wire    wren;
+wire    [7:0]  direccion,direccion2,direccion3,direccion4;
+wire    wren,wren2,wren3;
 wire    [21:0] temp1,temp2;
 
 
@@ -478,6 +478,9 @@ Ucontrol
 .ADC_A(ADC_DA_reg2_fil),
 .ADC_B(ADC_DB_reg2_fil),
 .address_mem(direccion),
+.address_mem2(direccion2),
+.address_mem3(direccion3),
+
 .salto(setb_rnum_i),
 .numero_rep(set_rnum_i),
 .num_ciclos(set_ncyc_i),
@@ -485,11 +488,15 @@ Ucontrol
 .fin(fin),
 .fin2(),
 .VALID_M(wren),
+.VALID_P(wren2),
+
 .DAC_S_registrado(sin_out),
 .MODULO(modulo),
 .PHASE(fase),
-.MODULOA(moduloA),
-.MODULOB(moduloB),
+//.PHASEA(fasea),
+//.PHASEB(faseb),
+//.MODULOA(moduloA),
+//.MODULOB(moduloB),
 .estado_pasos_cero(estado_pasos_cero)
 );
 
@@ -511,7 +518,7 @@ always @(posedge dac_clk_i)
 begin
 if (wren)  
     begin
-        result_buf[{direccion}] <= modulo ;
+        result_buf[{direccion2}] <= modulo ;
    //     result_buf[{1'b1,direccion}] <= moduloB;
     end
 end
@@ -525,16 +532,28 @@ always @(posedge dac_clk_i)
     
 //assign    buf_rdata_o= {buf_rdata};
 
-
+/*
+reg  signed [  31: 0] resultb_buf [0:(1<<9)-1] ; // buffer de 256 x 32
+// write from system or chirp
+always @(posedge dac_clk_i)
+begin
+if (wren2)  
+    begin
+        resultb_buf[{1'b0,direccion3}] <= { fasea} ;
+        resultb_buf[{1'b1,direccion3}] <= { faseb} ;
+    end
+end
+*/
 reg  signed [  31: 0] resultb_buf [0:(1<<8)-1] ; // buffer de 256 x 32
 // write from system or chirp
 always @(posedge dac_clk_i)
 begin
-if (wren)  
+if (wren2)  
     begin
-        resultb_buf[{direccion}] <= fase ;
+        resultb_buf[{direccion3}] <= { fase} ;
     end
 end
+
 
 //logic signed [13: 0]    bufb_rdata;
 // read-back
