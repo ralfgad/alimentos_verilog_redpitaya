@@ -95,11 +95,11 @@ architecture tb of tb_cordic_def is
 
   -- Slave channel CARTESIAN inputs
   signal s_axis_cartesian_tvalid    : std_logic := '0';  -- TVALID for channel S_AXIS_CARTESIAN
-  signal s_axis_cartesian_tdata     : std_logic_vector(95 downto 0) := (others => 'X');  -- TDATA for channel S_AXIS_CARTESIAN
+  signal s_axis_cartesian_tdata     : std_logic_vector(63 downto 0) := (others => 'X');  -- TDATA for channel S_AXIS_CARTESIAN
 
   -- Slave channel PHASE inputs
   signal s_axis_phase_tvalid    : std_logic := '0';  -- TVALID for channel S_AXIS_PHASE
-  signal s_axis_phase_tdata     : std_logic_vector(47 downto 0) := (others => 'X');  -- TDATA for channel S_AXIS_PHASE
+  signal s_axis_phase_tdata     : std_logic_vector(31 downto 0) := (others => 'X');  -- TDATA for channel S_AXIS_PHASE
 
   -----------------------------------------------------------------------
   -- DUT output signals
@@ -115,9 +115,9 @@ architecture tb of tb_cordic_def is
   -- If using ModelSim or Questa, add "-voptargs=+acc=n" to the vsim command
   -- to prevent the simulator optimizing away these signals.
   -----------------------------------------------------------------------
-  signal s_axis_cartesian_tdata_real     : std_logic_vector(47 downto 0) := (others => '0');
-  signal s_axis_cartesian_tdata_imag     : std_logic_vector(47 downto 0) := (others => '0');
-  signal s_axis_phase_tdata_real         : std_logic_vector(47 downto 0) := (others => '0');
+  signal s_axis_cartesian_tdata_real     : std_logic_vector(31 downto 0) := (others => '0');
+  signal s_axis_cartesian_tdata_imag     : std_logic_vector(31 downto 0) := (others => '0');
+  signal s_axis_phase_tdata_real         : std_logic_vector(31 downto 0) := (others => '0');
 
   signal m_axis_dout_tdata_real  : std_logic_vector(31 downto 0) := (others => '0');
   signal m_axis_dout_tdata_imag  : std_logic_vector(31 downto 0) := (others => '0');
@@ -136,10 +136,10 @@ architecture tb of tb_cordic_def is
   -----------------------------------------------------------------------
 
   constant IP_CARTESIAN_DEPTH : integer := 30;
-  constant IP_CARTESIAN_WIDTH : integer := 48;
+  constant IP_CARTESIAN_WIDTH : integer := 32;
   constant IP_CARTESIAN_SHIFT : integer := 3;  -- bit shift for amplitude
   constant IP_PHASE_DEPTH : integer := 32;
-  constant IP_PHASE_WIDTH : integer := 48;
+  constant IP_PHASE_WIDTH : integer := 32;
   constant IP_PHASE_SHIFT : integer := 0;  -- no bit shift, max amplitude
   type T_IP_INT_ENTRY is record
     re : integer;
@@ -322,9 +322,9 @@ begin
       if cartesian_tvalid_nxt /= '1' then
         s_axis_cartesian_tdata <= (others => 'X');
       else
-        -- TDATA: Real and imaginary components are each 48 bits wide and byte-aligned at their LSBs
-        s_axis_cartesian_tdata(47 downto 0) <= IP_CARTESIAN_DATA(ip_cartesian_index).re;
-        s_axis_cartesian_tdata(95 downto 48) <= IP_CARTESIAN_DATA(ip_cartesian_index).im;
+        -- TDATA: Real and imaginary components are each 32 bits wide and byte-aligned at their LSBs
+        s_axis_cartesian_tdata(31 downto 0) <= IP_CARTESIAN_DATA(ip_cartesian_index).re;
+        s_axis_cartesian_tdata(63 downto 32) <= IP_CARTESIAN_DATA(ip_cartesian_index).im;
 
       end if;
 
@@ -333,8 +333,8 @@ begin
       if phase_tvalid_nxt /= '1' then
         s_axis_phase_tdata <= (others => 'X');
       else
-        -- TDATA: Real component is 48 bits wide and byte-aligned at its LSBs
-        s_axis_phase_tdata(47 downto 0) <= IP_PHASE_DATA(ip_phase_index).re;
+        -- TDATA: Real component is 32 bits wide and byte-aligned at its LSBs
+        s_axis_phase_tdata(31 downto 0) <= IP_PHASE_DATA(ip_phase_index).re;
       end if;
 
       -- Increment input data indices
@@ -389,8 +389,8 @@ begin
   -- Assign TDATA fields to aliases, for easy simulator waveform viewing
   -----------------------------------------------------------------------
 
-  s_axis_cartesian_tdata_real  <= s_axis_cartesian_tdata(47 downto 0);
-  s_axis_cartesian_tdata_imag  <= s_axis_cartesian_tdata(95 downto 48);
+  s_axis_cartesian_tdata_real  <= s_axis_cartesian_tdata(31 downto 0);
+  s_axis_cartesian_tdata_imag  <= s_axis_cartesian_tdata(63 downto 32);
 
   m_axis_dout_tdata_phase      <= m_axis_dout_tdata(31 downto 0);
 

@@ -1,4 +1,5 @@
-module Control_path_rafa
+module Control_path_best_rafa_mejora_correlacion
+  
   #(parameter DATA_WIDTH=32, parameter ADDR_WIDTH=8, parameter MAGNITUD_WIDTH=14, parameter pancho_detector=10, parameter pciclos=4, parameter FICHERO_INICIAL="freq_log.dat", parameter shunt=1000)
    (input clk125,
     input clk65,
@@ -13,6 +14,10 @@ module Control_path_rafa
     input [15:0] numero_anchura,
     input logic signed [MAGNITUD_WIDTH-1:0] ADC_A,
     input logic signed [MAGNITUD_WIDTH-1:0] ADC_B,
+    input wren_sys,
+    input [7:0] address_wr_sys,
+    input [DATA_WIDTH-1:0]  data_write_sys,
+    output logic [DATA_WIDTH-1:0] data_read_sys, //borrar al terminar debug
     output logic fin,
     output logic fin2,
     output logic VALID_M,
@@ -46,7 +51,6 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
   logic detectado_cero_B, detectado_cero_Bnormal,detectado_cero_Btest;
   
   logic [7:0] address_mem3_a1,address_mem3_a2;
-  logic fin2A, fin2B;
   
   // enum  logic [2:0] {G0, G1,G1B, G2,G3} state1;
 
@@ -54,7 +58,7 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
   
   logic [2:0] state1;
 
-  logic [2:0] state2,state2A,state2B;
+  logic [2:0] state2A,state2B;
 
   //logic [7:0] address_mem;
   logic [2:0] contador_5_ciclos;
@@ -65,7 +69,7 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
   logic [15:0] anchura_variable;
   
   
-  assign anchura_variable=address_mem<salto?numero_anchura:(address_mem>200?10:30);
+  assign anchura_variable=address_mem<salto?250:(address_mem>numero_anchura?10:30);
   
   assign ciclos=test3?num_ciclos:pciclos;
   assign repeticiones=test3?numero_rep:225; //numero de puntos que tenemos
@@ -102,7 +106,7 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
         if (ovalid)
           state1<=G2;
       G1B:
-        if ((state2==S0) ) //|| (test2==1'b1))
+        if (((state2A==S0) && (test2==1'b1)) || ((state2B==S0) && (test2==1'b0)))
           state1<=G2;
       G2:
       begin
@@ -116,7 +120,31 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
           else
             //		if ((address_mem!=199)||((address_mem==199)&& (contador_5_ciclos<=ciclos)))
             contador_5_ciclos<=contador_5_ciclos+1;
+
+
         if ((address_mem>=repeticiones))
+        begin
+          if ((fin2A==1'b1)) //||(test2==1'b1))
+          
+          begin
+            state1<=G3;
+           // if (!test2)
+           //     address_mem<='0;           
+            contador_5_ciclos<='0;
+            fin<=1'b1;
+          end
+        end
+
+        if ((contador_5_ciclos>ciclos)&&(detectado_cero_S==1'b1))
+        begin
+            if (address_mem>=repeticiones)
+                address_mem<=repeticiones;
+            else
+                address_mem<=address_mem+paso;
+        end
+       /*
+                    //creo que de esta manera puede funcionar mejor
+       if ((address_mem=repeticiones-1))
         begin
           if ((fin2==1'b1)) //||(test2==1'b1))
           
@@ -130,11 +158,10 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
         end
         if ((contador_5_ciclos>ciclos)&&(detectado_cero_S==1'b1))
         begin
-            if (address_mem>=repeticiones)
-                address_mem<=repeticiones;
-            else
+            if (address_mem<repeticiones)
                 address_mem<=address_mem+paso;
         end
+        */
       end
       G3:
       begin
@@ -167,9 +194,9 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
 
   localparam [MAGNITUD_WIDTH-1:0] cero_magnitud='0;
   localparam tamanyo_shifter=1;
-  logic [MAGNITUD_WIDTH-1:0] auxA;
-  logic [MAGNITUD_WIDTH-1:0] auxB;
-  logic [MAGNITUD_WIDTH-1:0] auxS;
+  logic signed [MAGNITUD_WIDTH-1:0] auxA;
+  logic signed [MAGNITUD_WIDTH-1:0] auxB;
+  logic signed [MAGNITUD_WIDTH-1:0] auxS;
 
   always_ff @(posedge clk125 or negedge areset_n)
     if (!areset_n)
@@ -441,10 +468,10 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
   
   //empezamos cosas nuevas
   
-  logic signed [63:0] A_proyeccion_0_prod;
-  logic signed [63:0] A_proyeccion_1_prod;
-  logic signed [63:0] B_proyeccion_0_prod;
-  logic signed [63:0] B_proyeccion_1_prod;
+  logic signed [27:0] A_proyeccion_0_prod;
+  logic signed [27:0] A_proyeccion_1_prod;
+  logic signed [27:0] B_proyeccion_0_prod;
+  logic signed [27:0] B_proyeccion_1_prod;
   
   logic signed [63:0] A_proyeccion_0;
   logic signed [63:0] A_proyeccion_1;
@@ -456,16 +483,16 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
   logic signed [63:0] B_proyeccion_0_def;
   logic signed [63:0] B_proyeccion_1_def; 
   
-
+logic fin2A,fin2B;
   // STATE CONJUNTO, PARA COUNTER
-  always_ff@(posedge clk125 or negedge areset_n)
+ always_ff@(posedge clk125 or negedge areset_n)
   begin
     if(!areset_n)
     begin
       contador_4_ciclosA<='0;
       contador_4_ciclosB<='0;
-      state2<=S0;
-      fin2<=1'b0;
+      state2A<=S0;
+      fin2A<=1'b0;
       MODULOA_pre<='0;
       MODULOB_pre<='0;
       //MODULO<='0;
@@ -477,21 +504,20 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
                   
     end
     else
-    case(state2)
+    case(state2A)
       S0:
       begin
-        fin2<=1'b0;
+        fin2A<=1'b0;
         diferencia_pos<='0;
         diferencia_neg<='0;
         MODULO_POSA<='0;
         MODULO_POSB<='0;
         MODULO_NEGA<='0;
-        MODULO_NEGB<='0;
-      
+        MODULO_NEGB<='0;      
         contador_4_ciclosA<='0;
         contador_4_ciclosB<='0;
         if (state1==G1 || state1==G1B)
-          state2 <= S1;
+          state2A <= S1;
       end
       S1:
 
@@ -502,7 +528,7 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
           contador_4_ciclosA<=contador_4_ciclosA+1;
           if (contador_4_ciclosA==ciclos && contador_4_ciclosB==ciclos)
           begin
-            state2 <= S3;
+            state2A <= S3;
             //diferencia_neg<=diferencia_neg+1;
           end
         end
@@ -512,7 +538,7 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
           contador_4_ciclosB<=contador_4_ciclosB+1;
           if (contador_4_ciclosA==ciclos && contador_4_ciclosB==ciclos)
           begin
-            state2 <= S4;
+            state2A <= S4;
             // diferencia_pos<=diferencia_pos+1;
           end
         end
@@ -522,13 +548,13 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
           contador_4_ciclosA<=contador_4_ciclosA+1;
           if (contador_4_ciclosA==ciclos && contador_4_ciclosB==ciclos)
           begin
-            state2 <= S5;
+            state2A <= S5;
             // diferencia_pos<=diferencia_pos+1;
           end
         end
         endcase
       end
-     
+
       S3:     //positivo
       begin
         if (ADC_A_registrado>  MODULO_POSA)
@@ -539,40 +565,37 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
           MODULO_POSB<=ADC_B_registrado;
         if (ADC_B_registrado<  MODULO_NEGB)
           MODULO_NEGB<=ADC_B_registrado;
-        diferencia_pos<=diferencia_pos+1;
- 
+        diferencia_pos<=diferencia_pos+1;   
         
+       
         if (detectado_cero_A)
         begin
           contador_4_ciclosA<=contador_4_ciclosA+1;
           diferencia_pos<='0;
           if ((contador_4_ciclosA == ciclos+1) && (contador_4_ciclosB == ciclos+2))
           begin
-            state2<=S0;
-            fin2<=1'b1;
+            state2A<=S0;
+            fin2A<=1'b1;
             MODULOA_pre<=(MODULO_POSA-MODULO_NEGA)>>>2;
             MODULOB_pre<=(MODULO_POSB-MODULO_NEGB)>>>2;
-            A_proyeccion_0_def<=A_proyeccion_0;
-            A_proyeccion_1_def<=A_proyeccion_1;
-            B_proyeccion_0_def<=B_proyeccion_0;
-            B_proyeccion_1_def<=B_proyeccion_1;
-            //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
+          //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
             PHASE_PRE<=(temporal);
             //contador_4_ciclosB<='0;
           end
         end
+        
 
         if (detectado_cero_B)
         begin
           contador_4_ciclosB<=contador_4_ciclosB+1;
           if ((contador_4_ciclosB == ciclos+1) && (contador_4_ciclosA == ciclos+2))
           begin
-            state2<=S0;
-            fin2<=1'b1;
+            state2A<=S0;
+            fin2A<=1'b1;
             MODULOA_pre<=(MODULO_POSA-MODULO_NEGA)>>>2;
             MODULOB_pre<=(MODULO_POSB-MODULO_NEGB)>>>2;
-       
-            //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
+            
+          //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
             PHASE_PRE<=(temporal);
             //contador_4_ciclosB<='0;
           end
@@ -584,24 +607,24 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
           end
 
         end
+  
         if ((detectado_cero_B) && (detectado_cero_A))
         begin
           contador_4_ciclosB<=contador_4_ciclosB+1;
           contador_4_ciclosA<=contador_4_ciclosA+1;
           if ((contador_4_ciclosB == ciclos+1) && (contador_4_ciclosA == ciclos+1))
           begin
-            state2<=S0;
-            fin2<=1'b1;
+            state2A<=S0;
+            fin2A<=1'b1;
             MODULOA_pre<=(MODULO_POSA-MODULO_NEGA)>>>2;
             MODULOB_pre<=(MODULO_POSB-MODULO_NEGB)>>>2;
             
-          
             //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
             PHASE_PRE<=(temporal);
             //contador_4_ciclosB<='0;
           end
         end
-
+*/
       end
 
       S4:     //negativo
@@ -615,19 +638,19 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
           MODULO_POSB<=ADC_B_registrado;
         if (ADC_B_registrado<  MODULO_NEGB)
           MODULO_NEGB<=ADC_B_registrado;
-        if (detectado_cero_B)
+  
+      if (detectado_cero_B)
         begin
           contador_4_ciclosB<=contador_4_ciclosB+1;
           diferencia_neg<='0;
           if ((contador_4_ciclosB == ciclos+1) && (contador_4_ciclosA == ciclos+2) )
           begin
-            state2<=S0;
-            fin2<=1'b1;
+            state2A<=S0;
+            fin2A<=1'b1;
             MODULOA_pre<=(MODULO_POSA-MODULO_NEGA)>>>2;
             MODULOB_pre<=(MODULO_POSB-MODULO_NEGB)>>>2;
             
-           
-            //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
+          //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
             PHASE_PRE<=(temporal);
             //contador_4_ciclosA<='0;
           end
@@ -638,13 +661,12 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
           contador_4_ciclosA<=contador_4_ciclosA+1;
           if ((contador_4_ciclosA==ciclos+1) && (contador_4_ciclosB==ciclos+2)) //esto obliga a dividir por 4 los desfases
           begin
-            state2<=S0;
-            fin2<=1'b1;
+            state2A<=S0;
+            fin2A<=1'b1;
             MODULOA_pre<=(MODULO_POSA-MODULO_NEGA)>>>2;
             MODULOB_pre<=(MODULO_POSB-MODULO_NEGB)>>>2;
             
-          
-            //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
+          //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
             PHASE_PRE<=(temporal);
             //contador_4_ciclosA<='0;
           end
@@ -655,23 +677,25 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
           end
 
         end
+        
         if ((detectado_cero_B) && (detectado_cero_A))
         begin
           contador_4_ciclosB<=contador_4_ciclosB+1;
           contador_4_ciclosA<=contador_4_ciclosA+1;
           if ((contador_4_ciclosB == ciclos+1) && (contador_4_ciclosA == ciclos+1))
           begin
-            state2<=S0;
-            fin2<=1'b1;
+            state2A<=S0;
+            fin2A<=1'b1;
             MODULOA_pre<=(MODULO_POSA-MODULO_NEGA)>>>2;
             MODULOB_pre<=(MODULO_POSB-MODULO_NEGB)>>>2;
             
-          
-            //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
+           //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
             PHASE_PRE<=(temporal);
             //contador_4_ciclosB<='0;
           end
         end
+        
+        
       end
 
   S5:     //coincidentes
@@ -685,19 +709,18 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
           MODULO_POSB<=ADC_B_registrado;
         if (ADC_B_registrado<  MODULO_NEGB)
           MODULO_NEGB<=ADC_B_registrado;
-        if ((detectado_cero_B) || (detectado_cero_A))
+      if ((detectado_cero_B) || (detectado_cero_A))
         begin
           contador_4_ciclosB<=contador_4_ciclosB+1;
           contador_4_ciclosA<=contador_4_ciclosA+1;
           if ((contador_4_ciclosB == ciclos+1) && (contador_4_ciclosA == ciclos+1))
           begin
-            state2<=S0;
-            fin2<=1'b1;
+            state2A<=S0;
+            fin2A<=1'b1;
             MODULOA_pre<=(MODULO_POSA-MODULO_NEGA)>>>2;
             MODULOB_pre<=(MODULO_POSB-MODULO_NEGB)>>>2;
             
-           
-            //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
+          //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
             PHASE_PRE<='0;
             //contador_4_ciclosB<='0;
           end
@@ -715,18 +738,9 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
   begin
     if(!areset_n)
     begin
-      contador_4_ciclosA<='0;
-      contador_4_ciclosB<='0;
-      state2A<=S0;
-      fin2A<=1'b0;
-      MODULOA_pre<='0;
-      MODULOB_pre<='0;
-      //MODULO<='0;
-      //PHASE<='0;
-      MODULO_POSA<='0;
-      MODULO_POSB<='0;
-      MODULO_NEGA<='0;
-      MODULO_NEGB<='0;
+
+      state2B<=S0;
+      fin2B<=1'b0;
       A_proyeccion_0<='0;
       A_proyeccion_1<='0;
       B_proyeccion_0<='0;
@@ -734,24 +748,16 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
                   
     end
     else
-    case(state2)
+    case(state2B)
       S0:
       begin
-        fin2<=1'b0;
-        diferencia_pos<='0;
-        diferencia_neg<='0;
-        MODULO_POSA<='0;
-        MODULO_POSB<='0;
-        MODULO_NEGA<='0;
-        MODULO_NEGB<='0;
+        fin2B<=1'b0;
         A_proyeccion_0<='0;
         A_proyeccion_1<='0;
         B_proyeccion_0<='0;
         B_proyeccion_1<='0;        
-        contador_4_ciclosA<='0;
-        contador_4_ciclosB<='0;
         if (state1==G1 || state1==G1B)
-          state2 <= S1;
+          state2B <= S1;
       end
       S1:
 
@@ -759,30 +765,26 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
         case ({detectado_cero_A,detectado_cero_B})
         2'b10:
         begin
-          contador_4_ciclosA<=contador_4_ciclosA+1;
-          if (contador_4_ciclosA==ciclos && contador_4_ciclosB==ciclos)
+        if (contador_4_ciclosA==ciclos && contador_4_ciclosB==ciclos)
           begin
-            state2 <= S3;
+            state2B <= S3; //luego el A marcará el final
             //diferencia_neg<=diferencia_neg+1;
           end
         end
 
         2'b01:
         begin
-          contador_4_ciclosB<=contador_4_ciclosB+1;
-          if (contador_4_ciclosA==ciclos && contador_4_ciclosB==ciclos)
+         if (contador_4_ciclosA==ciclos && contador_4_ciclosB==ciclos)
           begin
-            state2 <= S4;
+            state2B <= S4; //luego el B marcará el final
             // diferencia_pos<=diferencia_pos+1;
           end
         end
         2'b11:
         begin
-          contador_4_ciclosB<=contador_4_ciclosB+1;
-          contador_4_ciclosA<=contador_4_ciclosA+1;
           if (contador_4_ciclosA==ciclos && contador_4_ciclosB==ciclos)
           begin
-            state2 <= S5;
+            state2B <= S5;
             // diferencia_pos<=diferencia_pos+1;
           end
         end
@@ -791,19 +793,7 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
      
       S3:     //positivo
       begin
-        if (ADC_A_registrado>  MODULO_POSA)
-          MODULO_POSA<=ADC_A_registrado;
-        if (ADC_A_registrado<  MODULO_NEGA)
-          MODULO_NEGA<=ADC_A_registrado;
-        if (ADC_B_registrado>  MODULO_POSB)
-          MODULO_POSB<=ADC_B_registrado;
-        if (ADC_B_registrado<  MODULO_NEGB)
-          MODULO_NEGB<=ADC_B_registrado;
-        diferencia_pos<=diferencia_pos+1;
-        //A_proyeccion_0_prod=ADC_A_registrado* DAC_A_ext;
-        //A_proyeccion_1_prod=ADC_A_registrado* DAC_A_cos_ext;
-        //B_proyeccion_0_prod=ADC_B_registrado* DAC_A_ext;
-        //B_proyeccion_1_prod=ADC_B_registrado* DAC_A_cos_ext;
+
         A_proyeccion_0<=ADC_A_registrado* DAC_A_ext+ A_proyeccion_0;
         A_proyeccion_1<=ADC_A_registrado* DAC_A_cos_ext+A_proyeccion_1;
         B_proyeccion_0<=ADC_B_registrado* DAC_A_ext+B_proyeccion_0; 
@@ -812,196 +802,56 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
         
         if (detectado_cero_A)
         begin
-          contador_4_ciclosA<=contador_4_ciclosA+1;
-          diferencia_pos<='0;
-          if ((contador_4_ciclosA == ciclos+1) && (contador_4_ciclosB == ciclos+2))
-          begin
-            state2<=S0;
-            fin2<=1'b1;
-            MODULOA_pre<=(MODULO_POSA-MODULO_NEGA)>>>2;
-            MODULOB_pre<=(MODULO_POSB-MODULO_NEGB)>>>2;
+            state2B<=S0;
+            fin2B<=1'b1;
             A_proyeccion_0_def<=A_proyeccion_0;
             A_proyeccion_1_def<=A_proyeccion_1;
             B_proyeccion_0_def<=B_proyeccion_0;
             B_proyeccion_1_def<=B_proyeccion_1;
-            //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
-            PHASE_PRE<=(temporal);
-            //contador_4_ciclosB<='0;
-          end
-        end
-
-        if (detectado_cero_B)
-        begin
-          contador_4_ciclosB<=contador_4_ciclosB+1;
-          if ((contador_4_ciclosB == ciclos+1) && (contador_4_ciclosA == ciclos+2))
-          begin
-            state2<=S0;
-            fin2<=1'b1;
-            MODULOA_pre<=(MODULO_POSA-MODULO_NEGA)>>>2;
-            MODULOB_pre<=(MODULO_POSB-MODULO_NEGB)>>>2;
-            
-            A_proyeccion_0_def<=A_proyeccion_0;
-            A_proyeccion_1_def<=A_proyeccion_1;
-            B_proyeccion_0_def<=B_proyeccion_0;
-            B_proyeccion_1_def<=B_proyeccion_1;            
-            //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
-            PHASE_PRE<=(temporal);
-            //contador_4_ciclosB<='0;
-          end
-
-          if (contador_4_ciclosB == ciclos)
-          begin
-            //temporal=(diferencia_pos*incrementado*360);
-            temporal=diferencia_pos;
-          end
 
         end
-        if ((detectado_cero_B) && (detectado_cero_A))
-        begin
-          contador_4_ciclosB<=contador_4_ciclosB+1;
-          contador_4_ciclosA<=contador_4_ciclosA+1;
-          if ((contador_4_ciclosB == ciclos+1) && (contador_4_ciclosA == ciclos+1))
-          begin
-            state2<=S0;
-            fin2<=1'b1;
-            MODULOA_pre<=(MODULO_POSA-MODULO_NEGA)>>>2;
-            MODULOB_pre<=(MODULO_POSB-MODULO_NEGB)>>>2;
-            
-            A_proyeccion_0_def<=A_proyeccion_0;
-            A_proyeccion_1_def<=A_proyeccion_1;
-            B_proyeccion_0_def<=B_proyeccion_0;
-            B_proyeccion_1_def<=B_proyeccion_1;            
-            //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
-            PHASE_PRE<=(temporal);
-            //contador_4_ciclosB<='0;
-          end
-        end
+
+  
 
       end
 
       S4:     //negativo
       begin
-        diferencia_neg <= diferencia_neg +1;
-        if (ADC_A_registrado>  MODULO_POSA)
-          MODULO_POSA<=ADC_A_registrado;
-        if (ADC_A_registrado<  MODULO_NEGA)
-          MODULO_NEGA<=ADC_A_registrado;
-        if (ADC_B_registrado>  MODULO_POSB)
-          MODULO_POSB<=ADC_B_registrado;
-        if (ADC_B_registrado<  MODULO_NEGB)
-          MODULO_NEGB<=ADC_B_registrado;
-        //A_proyeccion_0_prod=ADC_A_registrado* DAC_A_ext;
-        //A_proyeccion_1_prod=ADC_A_registrado* DAC_A_cos_ext;
-        //B_proyeccion_0_prod=ADC_B_registrado* DAC_A_ext;
-        //B_proyeccion_1_prod=ADC_B_registrado* DAC_A_cos_ext;
         A_proyeccion_0<=ADC_A_registrado* DAC_A_ext+ A_proyeccion_0;
         A_proyeccion_1<=ADC_A_registrado* DAC_A_cos_ext+A_proyeccion_1;
         B_proyeccion_0<=ADC_B_registrado* DAC_A_ext+B_proyeccion_0; 
-        B_proyeccion_1<=ADC_B_registrado* DAC_A_cos_ext+B_proyeccion_1;                        
+        B_proyeccion_1<=ADC_B_registrado* DAC_A_cos_ext+B_proyeccion_1;                       
+                       
         if (detectado_cero_B)
         begin
-          contador_4_ciclosB<=contador_4_ciclosB+1;
-          diferencia_neg<='0;
-          if ((contador_4_ciclosB == ciclos+1) && (contador_4_ciclosA == ciclos+2) )
-          begin
-            state2<=S0;
-            fin2<=1'b1;
-            MODULOA_pre<=(MODULO_POSA-MODULO_NEGA)>>>2;
-            MODULOB_pre<=(MODULO_POSB-MODULO_NEGB)>>>2;
-            
+            state2B<=S0;
+            fin2B<=1'b1;
             A_proyeccion_0_def<=A_proyeccion_0;
             A_proyeccion_1_def<=A_proyeccion_1;
             B_proyeccion_0_def<=B_proyeccion_0;
-            B_proyeccion_1_def<=B_proyeccion_1;            
-            //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
-            PHASE_PRE<=(temporal);
-            //contador_4_ciclosA<='0;
-          end
-        end
-
-        if (detectado_cero_A)
-        begin
-          contador_4_ciclosA<=contador_4_ciclosA+1;
-          if ((contador_4_ciclosA==ciclos+1) && (contador_4_ciclosB==ciclos+2)) //esto obliga a dividir por 4 los desfases
-          begin
-            state2<=S0;
-            fin2<=1'b1;
-            MODULOA_pre<=(MODULO_POSA-MODULO_NEGA)>>>2;
-            MODULOB_pre<=(MODULO_POSB-MODULO_NEGB)>>>2;
-            
-            A_proyeccion_0_def<=A_proyeccion_0;
-            A_proyeccion_1_def<=A_proyeccion_1;
-            B_proyeccion_0_def<=B_proyeccion_0;
-            B_proyeccion_1_def<=B_proyeccion_1;            
-            //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
-            PHASE_PRE<=(temporal);
-            //contador_4_ciclosA<='0;
-          end
-          if (contador_4_ciclosA == ciclos)
-          begin
-           // temporal=-(diferencia_neg*incrementado*360);
-            temporal=-diferencia_neg;
-          end
+            B_proyeccion_1_def<=B_proyeccion_1;
 
         end
-        if ((detectado_cero_B) && (detectado_cero_A))
-        begin
-          contador_4_ciclosB<=contador_4_ciclosB+1;
-          contador_4_ciclosA<=contador_4_ciclosA+1;
-          if ((contador_4_ciclosB == ciclos+1) && (contador_4_ciclosA == ciclos+1))
-          begin
-            state2<=S0;
-            fin2<=1'b1;
-            MODULOA_pre<=(MODULO_POSA-MODULO_NEGA)>>>2;
-            MODULOB_pre<=(MODULO_POSB-MODULO_NEGB)>>>2;
-            
-            A_proyeccion_0_def<=A_proyeccion_0;
-            A_proyeccion_1_def<=A_proyeccion_1;
-            B_proyeccion_0_def<=B_proyeccion_0;
-            B_proyeccion_1_def<=B_proyeccion_1;            
-            //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
-            PHASE_PRE<=(temporal);
-            //contador_4_ciclosB<='0;
-          end
-        end
-      end
+     end
 
   S5:     //coincidentes
       begin
-        // diferencia_neg <= diferencia_neg +1;
-        if (ADC_A_registrado>  MODULO_POSA)
-          MODULO_POSA<=ADC_A_registrado;
-        if (ADC_A_registrado<  MODULO_NEGA)
-          MODULO_NEGA<=ADC_A_registrado;
-        if (ADC_B_registrado>  MODULO_POSB)
-          MODULO_POSB<=ADC_B_registrado;
-        if (ADC_B_registrado<  MODULO_NEGB)
-          MODULO_NEGB<=ADC_B_registrado;
         A_proyeccion_0<=ADC_A_registrado* DAC_A_ext+ A_proyeccion_0;
         A_proyeccion_1<=ADC_A_registrado* DAC_A_cos_ext+A_proyeccion_1;
         B_proyeccion_0<=ADC_B_registrado* DAC_A_ext+B_proyeccion_0; 
-        B_proyeccion_1<=ADC_B_registrado* DAC_A_cos_ext+B_proyeccion_1;                          
-        if ((detectado_cero_B) || (detectado_cero_A))
+        B_proyeccion_1<=ADC_B_registrado* DAC_A_cos_ext+B_proyeccion_1;                       
+                       
+        if (detectado_cero_B || detectado_cero_B)
         begin
-          contador_4_ciclosB<=contador_4_ciclosB+1;
-          contador_4_ciclosA<=contador_4_ciclosA+1;
-          if ((contador_4_ciclosB == ciclos+1) && (contador_4_ciclosA == ciclos+1))
-          begin
-            state2<=S0;
-            fin2<=1'b1;
-            MODULOA_pre<=(MODULO_POSA-MODULO_NEGA)>>>2;
-            MODULOB_pre<=(MODULO_POSB-MODULO_NEGB)>>>2;
-            
+            state2B<=S0;
+            fin2B<=1'b1;
             A_proyeccion_0_def<=A_proyeccion_0;
             A_proyeccion_1_def<=A_proyeccion_1;
             B_proyeccion_0_def<=B_proyeccion_0;
-            B_proyeccion_1_def<=B_proyeccion_1;            
-            //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
-            PHASE_PRE<='0;
-            //contador_4_ciclosB<='0;
-          end
+            B_proyeccion_1_def<=B_proyeccion_1;
+
         end
-      end
+     end
 
 
 
@@ -1009,304 +859,7 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
     endcase
 
   end
-    always_ff@(posedge clk125 or negedge areset_n)
-  begin
-    if(!areset_n)
-    begin
-      contador_4_ciclosA<='0;
-      contador_4_ciclosB<='0;
-      state2<=S0;
-      fin2<=1'b0;
-      MODULOA_pre<='0;
-      MODULOB_pre<='0;
-      //MODULO<='0;
-      //PHASE<='0;
-      MODULO_POSA<='0;
-      MODULO_POSB<='0;
-      MODULO_NEGA<='0;
-      MODULO_NEGB<='0;
-      A_proyeccion_0<='0;
-      A_proyeccion_1<='0;
-      B_proyeccion_0<='0;
-      B_proyeccion_1<='0;
-                  
-    end
-    else
-    case(state2)
-      S0:
-      begin
-        fin2<=1'b0;
-        diferencia_pos<='0;
-        diferencia_neg<='0;
-        MODULO_POSA<='0;
-        MODULO_POSB<='0;
-        MODULO_NEGA<='0;
-        MODULO_NEGB<='0;
-        A_proyeccion_0<='0;
-        A_proyeccion_1<='0;
-        B_proyeccion_0<='0;
-        B_proyeccion_1<='0;        
-        contador_4_ciclosA<='0;
-        contador_4_ciclosB<='0;
-        if (state1==G1 || state1==G1B)
-          state2 <= S1;
-      end
-      S1:
 
-      begin
-        case ({detectado_cero_A,detectado_cero_B})
-        2'b10:
-        begin
-          contador_4_ciclosA<=contador_4_ciclosA+1;
-          if (contador_4_ciclosA==ciclos && contador_4_ciclosB==ciclos)
-          begin
-            state2 <= S3;
-            //diferencia_neg<=diferencia_neg+1;
-          end
-        end
-
-        2'b01:
-        begin
-          contador_4_ciclosB<=contador_4_ciclosB+1;
-          if (contador_4_ciclosA==ciclos && contador_4_ciclosB==ciclos)
-          begin
-            state2 <= S4;
-            // diferencia_pos<=diferencia_pos+1;
-          end
-        end
-        2'b11:
-        begin
-          contador_4_ciclosB<=contador_4_ciclosB+1;
-          contador_4_ciclosA<=contador_4_ciclosA+1;
-          if (contador_4_ciclosA==ciclos && contador_4_ciclosB==ciclos)
-          begin
-            state2 <= S5;
-            // diferencia_pos<=diferencia_pos+1;
-          end
-        end
-        endcase
-      end
-     
-      S3:     //positivo
-      begin
-        if (ADC_A_registrado>  MODULO_POSA)
-          MODULO_POSA<=ADC_A_registrado;
-        if (ADC_A_registrado<  MODULO_NEGA)
-          MODULO_NEGA<=ADC_A_registrado;
-        if (ADC_B_registrado>  MODULO_POSB)
-          MODULO_POSB<=ADC_B_registrado;
-        if (ADC_B_registrado<  MODULO_NEGB)
-          MODULO_NEGB<=ADC_B_registrado;
-        diferencia_pos<=diferencia_pos+1;
-        //A_proyeccion_0_prod=ADC_A_registrado* DAC_A_ext;
-        //A_proyeccion_1_prod=ADC_A_registrado* DAC_A_cos_ext;
-        //B_proyeccion_0_prod=ADC_B_registrado* DAC_A_ext;
-        //B_proyeccion_1_prod=ADC_B_registrado* DAC_A_cos_ext;
-        A_proyeccion_0<=ADC_A_registrado* DAC_A_ext+ A_proyeccion_0;
-        A_proyeccion_1<=ADC_A_registrado* DAC_A_cos_ext+A_proyeccion_1;
-        B_proyeccion_0<=ADC_B_registrado* DAC_A_ext+B_proyeccion_0; 
-        B_proyeccion_1<=ADC_B_registrado* DAC_A_cos_ext+B_proyeccion_1;                      
-        
-        
-        if (detectado_cero_A)
-        begin
-          contador_4_ciclosA<=contador_4_ciclosA+1;
-          diferencia_pos<='0;
-          if ((contador_4_ciclosA == ciclos+1) && (contador_4_ciclosB == ciclos+2))
-          begin
-            state2<=S0;
-            fin2<=1'b1;
-            MODULOA_pre<=(MODULO_POSA-MODULO_NEGA)>>>2;
-            MODULOB_pre<=(MODULO_POSB-MODULO_NEGB)>>>2;
-            A_proyeccion_0_def<=A_proyeccion_0;
-            A_proyeccion_1_def<=A_proyeccion_1;
-            B_proyeccion_0_def<=B_proyeccion_0;
-            B_proyeccion_1_def<=B_proyeccion_1;
-            //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
-            PHASE_PRE<=(temporal);
-            //contador_4_ciclosB<='0;
-          end
-        end
-
-        if (detectado_cero_B)
-        begin
-          contador_4_ciclosB<=contador_4_ciclosB+1;
-          if ((contador_4_ciclosB == ciclos+1) && (contador_4_ciclosA == ciclos+2))
-          begin
-            state2<=S0;
-            fin2<=1'b1;
-            MODULOA_pre<=(MODULO_POSA-MODULO_NEGA)>>>2;
-            MODULOB_pre<=(MODULO_POSB-MODULO_NEGB)>>>2;
-            
-            A_proyeccion_0_def<=A_proyeccion_0;
-            A_proyeccion_1_def<=A_proyeccion_1;
-            B_proyeccion_0_def<=B_proyeccion_0;
-            B_proyeccion_1_def<=B_proyeccion_1;            
-            //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
-            PHASE_PRE<=(temporal);
-            //contador_4_ciclosB<='0;
-          end
-
-          if (contador_4_ciclosB == ciclos)
-          begin
-            //temporal=(diferencia_pos*incrementado*360);
-            temporal=diferencia_pos;
-          end
-
-        end
-        if ((detectado_cero_B) && (detectado_cero_A))
-        begin
-          contador_4_ciclosB<=contador_4_ciclosB+1;
-          contador_4_ciclosA<=contador_4_ciclosA+1;
-          if ((contador_4_ciclosB == ciclos+1) && (contador_4_ciclosA == ciclos+1))
-          begin
-            state2<=S0;
-            fin2<=1'b1;
-            MODULOA_pre<=(MODULO_POSA-MODULO_NEGA)>>>2;
-            MODULOB_pre<=(MODULO_POSB-MODULO_NEGB)>>>2;
-            
-            A_proyeccion_0_def<=A_proyeccion_0;
-            A_proyeccion_1_def<=A_proyeccion_1;
-            B_proyeccion_0_def<=B_proyeccion_0;
-            B_proyeccion_1_def<=B_proyeccion_1;            
-            //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
-            PHASE_PRE<=(temporal);
-            //contador_4_ciclosB<='0;
-          end
-        end
-
-      end
-
-      S4:     //negativo
-      begin
-        diferencia_neg <= diferencia_neg +1;
-        if (ADC_A_registrado>  MODULO_POSA)
-          MODULO_POSA<=ADC_A_registrado;
-        if (ADC_A_registrado<  MODULO_NEGA)
-          MODULO_NEGA<=ADC_A_registrado;
-        if (ADC_B_registrado>  MODULO_POSB)
-          MODULO_POSB<=ADC_B_registrado;
-        if (ADC_B_registrado<  MODULO_NEGB)
-          MODULO_NEGB<=ADC_B_registrado;
-        //A_proyeccion_0_prod=ADC_A_registrado* DAC_A_ext;
-        //A_proyeccion_1_prod=ADC_A_registrado* DAC_A_cos_ext;
-        //B_proyeccion_0_prod=ADC_B_registrado* DAC_A_ext;
-        //B_proyeccion_1_prod=ADC_B_registrado* DAC_A_cos_ext;
-        A_proyeccion_0<=ADC_A_registrado* DAC_A_ext+ A_proyeccion_0;
-        A_proyeccion_1<=ADC_A_registrado* DAC_A_cos_ext+A_proyeccion_1;
-        B_proyeccion_0<=ADC_B_registrado* DAC_A_ext+B_proyeccion_0; 
-        B_proyeccion_1<=ADC_B_registrado* DAC_A_cos_ext+B_proyeccion_1;                        
-        if (detectado_cero_B)
-        begin
-          contador_4_ciclosB<=contador_4_ciclosB+1;
-          diferencia_neg<='0;
-          if ((contador_4_ciclosB == ciclos+1) && (contador_4_ciclosA == ciclos+2) )
-          begin
-            state2<=S0;
-            fin2<=1'b1;
-            MODULOA_pre<=(MODULO_POSA-MODULO_NEGA)>>>2;
-            MODULOB_pre<=(MODULO_POSB-MODULO_NEGB)>>>2;
-            
-            A_proyeccion_0_def<=A_proyeccion_0;
-            A_proyeccion_1_def<=A_proyeccion_1;
-            B_proyeccion_0_def<=B_proyeccion_0;
-            B_proyeccion_1_def<=B_proyeccion_1;            
-            //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
-            PHASE_PRE<=(temporal);
-            //contador_4_ciclosA<='0;
-          end
-        end
-
-        if (detectado_cero_A)
-        begin
-          contador_4_ciclosA<=contador_4_ciclosA+1;
-          if ((contador_4_ciclosA==ciclos+1) && (contador_4_ciclosB==ciclos+2)) //esto obliga a dividir por 4 los desfases
-          begin
-            state2<=S0;
-            fin2<=1'b1;
-            MODULOA_pre<=(MODULO_POSA-MODULO_NEGA)>>>2;
-            MODULOB_pre<=(MODULO_POSB-MODULO_NEGB)>>>2;
-            
-            A_proyeccion_0_def<=A_proyeccion_0;
-            A_proyeccion_1_def<=A_proyeccion_1;
-            B_proyeccion_0_def<=B_proyeccion_0;
-            B_proyeccion_1_def<=B_proyeccion_1;            
-            //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
-            PHASE_PRE<=(temporal);
-            //contador_4_ciclosA<='0;
-          end
-          if (contador_4_ciclosA == ciclos)
-          begin
-           // temporal=-(diferencia_neg*incrementado*360);
-            temporal=-diferencia_neg;
-          end
-
-        end
-        if ((detectado_cero_B) && (detectado_cero_A))
-        begin
-          contador_4_ciclosB<=contador_4_ciclosB+1;
-          contador_4_ciclosA<=contador_4_ciclosA+1;
-          if ((contador_4_ciclosB == ciclos+1) && (contador_4_ciclosA == ciclos+1))
-          begin
-            state2<=S0;
-            fin2<=1'b1;
-            MODULOA_pre<=(MODULO_POSA-MODULO_NEGA)>>>2;
-            MODULOB_pre<=(MODULO_POSB-MODULO_NEGB)>>>2;
-            
-            A_proyeccion_0_def<=A_proyeccion_0;
-            A_proyeccion_1_def<=A_proyeccion_1;
-            B_proyeccion_0_def<=B_proyeccion_0;
-            B_proyeccion_1_def<=B_proyeccion_1;            
-            //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
-            PHASE_PRE<=(temporal);
-            //contador_4_ciclosB<='0;
-          end
-        end
-      end
-
-  S5:     //coincidentes
-      begin
-        // diferencia_neg <= diferencia_neg +1;
-        if (ADC_A_registrado>  MODULO_POSA)
-          MODULO_POSA<=ADC_A_registrado;
-        if (ADC_A_registrado<  MODULO_NEGA)
-          MODULO_NEGA<=ADC_A_registrado;
-        if (ADC_B_registrado>  MODULO_POSB)
-          MODULO_POSB<=ADC_B_registrado;
-        if (ADC_B_registrado<  MODULO_NEGB)
-          MODULO_NEGB<=ADC_B_registrado;
-        A_proyeccion_0<=ADC_A_registrado* DAC_A_ext+ A_proyeccion_0;
-        A_proyeccion_1<=ADC_A_registrado* DAC_A_cos_ext+A_proyeccion_1;
-        B_proyeccion_0<=ADC_B_registrado* DAC_A_ext+B_proyeccion_0; 
-        B_proyeccion_1<=ADC_B_registrado* DAC_A_cos_ext+B_proyeccion_1;                          
-        if ((detectado_cero_B) || (detectado_cero_A))
-        begin
-          contador_4_ciclosB<=contador_4_ciclosB+1;
-          contador_4_ciclosA<=contador_4_ciclosA+1;
-          if ((contador_4_ciclosB == ciclos+1) && (contador_4_ciclosA == ciclos+1))
-          begin
-            state2<=S0;
-            fin2<=1'b1;
-            MODULOA_pre<=(MODULO_POSA-MODULO_NEGA)>>>2;
-            MODULOB_pre<=(MODULO_POSB-MODULO_NEGB)>>>2;
-            
-            A_proyeccion_0_def<=A_proyeccion_0;
-            A_proyeccion_1_def<=A_proyeccion_1;
-            B_proyeccion_0_def<=B_proyeccion_0;
-            B_proyeccion_1_def<=B_proyeccion_1;            
-            //MODULO<=(((MODULO_POSA-MODULO_NEGA)/(MODULO_POSB-MODULO_NEGB))- 1)*1000;
-            PHASE_PRE<='0;
-            //contador_4_ciclosB<='0;
-          end
-        end
-      end
-
-
-
-
-    endcase
-
-  end
 
   logic [31:0] cociente;
   logic findiv;
@@ -1324,7 +877,7 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
                (
                  .CLK(clk125),
                  .RSTa(areset_n),
-                 .Start(fin2),
+                 .Start(fin2A),
 
                  .Num(MODULOA_pre*shunt),
                  .Den(MODULOB_pre),
@@ -1373,7 +926,7 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
                   .RESET_N(areset_n),
                   .DATA_IN(address_mem-1),
                   .READ(findiv),
-                  .WRITE(fin2),
+                  .WRITE(fin2A),
                   .CLEAR_N(1'b1),
                   .F_FULL_N(),
                   .F_EMPTY_N(),
@@ -1385,7 +938,7 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
                   .DATA_IN(address_mem-1),
                   .READ(finarctan),
                  // .READ(pulsito),
-                  .WRITE(fin2),
+                  .WRITE(fin2B),
                   .CLEAR_N(1'b1),
                   .F_FULL_N(),
                   .F_EMPTY_N(),
@@ -1412,8 +965,8 @@ cordic_def ARCTANH_A
 (  
   .aclk(clk125),              // input wire aclk
   .aresetn(areset_n),                                  // input wire aresetn
-  .s_axis_cartesian_tvalid(fin2),  // input wire s_axis_cartesian_tvalid
-  .s_axis_cartesian_tdata({A_proyeccion_1_def[47:0],A_proyeccion_0_def[47:0]}),    // input wire [31 : 0] s_axis_cartesian_tdata
+  .s_axis_cartesian_tvalid(fin2B),  // input wire s_axis_cartesian_tvalid
+  .s_axis_cartesian_tdata({A_proyeccion_1_def,A_proyeccion_0_def}),    // input wire [31 : 0] s_axis_cartesian_tdata
 //  .s_axis_cartesian_tready(s_axis_cartesian_tready),   
   .m_axis_dout_tvalid(finarctan),            // output wire m_axis_dout_tvalid
   .m_axis_dout_tdata(fasea)              // output wire [15 : 0] m_axis_dout_tdata
@@ -1423,8 +976,8 @@ cordic_def ARCTANH_B
 (  
   .aclk(clk125),              // input wire aclk
   .aresetn(areset_n),                                  // input wire aresetn
-  .s_axis_cartesian_tvalid(fin2),  // input wire s_axis_cartesian_tvalid
-  .s_axis_cartesian_tdata({B_proyeccion_1_def[47:0],B_proyeccion_0_def[47:0]}),    // input wire [31 : 0] s_axis_cartesian_tdata
+  .s_axis_cartesian_tvalid(fin2B),  // input wire s_axis_cartesian_tvalid
+  .s_axis_cartesian_tdata({B_proyeccion_1_def,B_proyeccion_0_def}),    // input wire [31 : 0] s_axis_cartesian_tdata
  // .s_axis_cartesian_tready(s_axis_cartesian_tready),   
   // .m_axis_dout_tvalid(),            // output wire m_axis_dout_tvalid
   .m_axis_dout_tdata(faseb)              // output wire [15 : 0] m_axis_dout_tdata
@@ -1454,7 +1007,7 @@ cordic_def ARCTANH_B
 
     if(!areset_n)
 	begin
-      		MODULO<='0;
+    MODULO<='0;
 		PHASE_alternativa1<='0;
 
 	end
@@ -1526,7 +1079,7 @@ cordic_def ARCTANH_B
 assign DAC_A_ext={{EXTENSION{DAC_A[MAGNITUD_WIDTH-1]}},DAC_A};
 assign DAC_A_cos_ext={{EXTENSION{DAC_A_cos[MAGNITUD_WIDTH-1]}},DAC_A_cos};
   // Declare the ROM variable
-  logic [DATA_WIDTH-1:0] rom[2**ADDR_WIDTH-1:0];
+  logic [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH-1:0];
 
   // Initialize the ROM with $readmemb.  Put the memory contents
   // in the file single_port_rom_init.txt.  Without this file,
@@ -1536,11 +1089,14 @@ assign DAC_A_cos_ext={{EXTENSION{DAC_A_cos[MAGNITUD_WIDTH-1]}},DAC_A_cos};
 
   initial
   begin
-    $readmemh(FICHERO_INICIAL, rom);
+    $readmemh(FICHERO_INICIAL, ram);
   end
-
-  assign incrementado = rom[address_mem]; //puro combinacional
-  assign estado_pasos_cero= test1? state2: state1;
+  always @(posedge clk125)
+    if (wren_sys)
+        ram[address_wr_sys]<=data_write_sys;
+  
+  assign incrementado = ram[address_mem]; //puro combinacional
+  assign estado_pasos_cero= test1? state2B: state1;
 
 
 endmodule

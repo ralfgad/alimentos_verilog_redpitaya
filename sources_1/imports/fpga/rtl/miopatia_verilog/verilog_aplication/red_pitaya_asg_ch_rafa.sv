@@ -58,7 +58,7 @@ module red_pitaya_asg_ch_rafa #(
    // buffer ctrl
    input                 buf_we_i        ,  //!< buffer write enable
    input      [ 14-1: 0] buf_addr_i      ,  //!< buffer address
-   input      [ 14-1: 0] buf_wdata_i     ,  //!< buffer write data
+   input      [ 31: 0] buf_wdata_i     ,  //!< buffer write data
    output logic signed [31: 0]    buf_rdata_o     ,  //!< buffer read data
    output reg [RSZ-1: 0] buf_rpnt_o      ,  //!< buffer current read pointer
    
@@ -263,7 +263,7 @@ end else begin
 end
 
 assign dac_npnt = dac_pnt + set_step_i;
-assign trig_done_o = !dac_rep && trig_in;
+// assign trig_done_o = !dac_rep && trig_in;
 
 //---------------------------------------------------------------------------------
 //
@@ -325,6 +325,7 @@ logic    signed   [13:0]     ADC_DA_reg, ADC_DA_reg2,ADC_DA_reg2_fil;
 logic   signed   [13:0]     ADC_DB_reg, ADC_DB_reg2,ADC_DB_reg2_fil;
 //filtros copiados de scope
 
+/*
 red_pitaya_dfilt1 i_dfilt1_cha (
    // ADC
   .adc_clk_i   ( dac_clk_i       ),  // ADC clock
@@ -351,11 +352,11 @@ red_pitaya_dfilt1 i_dfilt1_chb (
   .cfg_pp_i    ( 25'h0D9999A  )   // config PP coefficient
 );
 
-
+*/
 //atencion importante
 assign ADC_DA_reg2_fil=ADC_DA_reg2;
-assign ADC_DB_reg2_fil=$signed(ADC_DB_reg2)+ $signed(set_adc_b_i );
-
+// assign ADC_DB_reg2_fil=$signed(ADC_DB_reg2)+ $signed(set_adc_b_i ); para variar el offset del canal de entrada
+assign ADC_DB_reg2_fil=ADC_DB_reg2;
 /////////////////////////////////////
 
 // para mi bloque
@@ -426,6 +427,7 @@ always_ff @(posedge adc_clk or negedge adc_rstn)
 	assign LOOP_B_DESFASADO=auxB[0];
 
 */
+/*
 assign temp1=(ADC_DA_reg2-13'd6690)*8'b10101110;
 assign temp2=(ADC_DB_reg2-13'd6690)*8'b10101110;
 
@@ -437,7 +439,7 @@ always @ (posedge dac_clk_i) r_DAC_DA <= {sin_out[13],sin_out[13:1]};
 
 always @ (posedge dac_clk_i) DAC_DA_rafa <= {sin_out[13],sin_out[13:1]}+13'd4096;
 
-
+*/
 
 // scale and offset
 always @(posedge dac_clk_i)
@@ -461,8 +463,8 @@ end
 
 wire empezar_chirp= set_once_i ;
 
-	
-Control_path_rafa
+logic [31:0] debugeo;	
+Control_path_best_rafa_mejora_correlacion
 #(.DATA_WIDTH(32), .ADDR_WIDTH(8), .MAGNITUD_WIDTH(14), .pancho_detector(30),.pciclos(1), .FICHERO_INICIAL("freq_log_ideal.dat"))
 
 Ucontrol
@@ -480,7 +482,10 @@ Ucontrol
 .address_mem(direccion),
 .address_mem2(direccion2),
 .address_mem3(direccion3),
-
+.wren_sys(buf_we_i),
+.address_wr_sys(buf_addr_i),
+.data_write_sys(buf_wdata_i),
+.data_read_sys(debugeo), //borrar al terminar debugeo
 .salto(setb_rnum_i),
 .numero_rep(set_rnum_i),
 .num_ciclos(set_ncyc_i),
@@ -555,13 +560,14 @@ if (wren2)
 end
 
 
-//logic signed [13: 0]    bufb_rdata;
+logic signed [31: 0]    bufb_rdata;
 // read-back
-always @(posedge dac_clk_i)
-//buf_rdata_o <= control[4]?result_buf[buf_addr_i]:dac_buf[buf_addr_i] ;
-    bufb_rdata_o <= resultb_buf[buf_addr_i] ;
+
+ always @(posedge dac_clk_i) 
+    bufb_rdata <= resultb_buf[buf_addr_i] ; 
     
     
-//assign    buf_rdata_o= {{18{buf_rdata[13]}}, buf_rdata};
+//assign    bufb_rdata_o= control[1]?debugeo:bufb_rdata; //borrar al terminar debugeo
+assign    bufb_rdata_o= bufb_rdata; //restituir al finalizar el debugeo
 
 endmodule

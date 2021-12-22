@@ -419,10 +419,10 @@ red_pitaya_hk i_hk (
   // global configuration
   .digital_loop    (digital_loop),
   // Expansion connector
-  .exp_p_dat_i     (exp_p_in ),  // input data
+  .exp_p_dat_i     ({led_o[7],exp_p_in[6:0]}  ),  // input data
   .exp_p_dat_o     (exp_p_out),  // output data
   .exp_p_dir_o     (exp_p_dir),  // 1-output enable
-  .exp_n_dat_i     ({led_o[7],exp_n_in[6:0]} ),
+  .exp_n_dat_i     (exp_n_in ),
   .exp_n_dat_o     (exp_n_out),
   .exp_n_dir_o     (exp_n_dir),
    // System bus

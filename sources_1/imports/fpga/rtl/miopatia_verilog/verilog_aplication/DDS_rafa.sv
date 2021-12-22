@@ -2,9 +2,10 @@ module DDS_rafa (
           input [31:0] phi_inc_i,
           input reset_n,
           input clken,
-          output [13:0] fsin_o,
-          output [13:0] fcos_o,
+          output logic [13:0] fsin_o,
+          output logic [13:0] fcos_o,
           output logic out_valid,
+          output logic pulso, //deteccion de cero
           input clk
           );
 
@@ -13,11 +14,16 @@ logic valid;
 logic [15:0] addr1,addr2;
 logic [13:0] q1,q2;
 
+logic positivo,positivo_reg;
+
+assign positivo=addr1[15];
 
 always_ff @(posedge clk , negedge reset_n)
 if (!reset_n)
 
     begin
+        pulso<=1'b0;
+        positivo_reg<=1'b0;
         accu<='0;
         valid<=1'b0;
         out_valid<=1'b0;
@@ -26,7 +32,15 @@ else
     begin
         accu<=accu+phi_inc_i;
         valid<=clken;
+        positivo_reg<=positivo;        
         out_valid<=valid;
+        fsin_o<=q1;
+        fcos_o<=q2;
+        if (positivo_reg==1'b0 && positivo==1'b1)
+            pulso<=1'b1;
+        else begin
+            pulso<=1'b0;
+        end
     end
 
 
@@ -48,8 +62,8 @@ memoria_dual_port #(.DATA_WIDTH(14),.ADDR_WIDTH(16), .FICHERO_INICIAL("sin_total
                             
                          
 							
-assign	fsin_o=clken?q1:'0	;
-assign	fcos_o=clken?q2:'0	;							
+//assign	fsin_o=clken?q1:'0	;
+//assign	fcos_o=clken?q2:'0	;							
   
  
 endmodule

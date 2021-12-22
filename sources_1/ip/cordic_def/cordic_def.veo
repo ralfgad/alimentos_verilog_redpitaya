@@ -59,7 +59,7 @@ cordic_def your_instance_name (
   .aresetn(aresetn),                                  // input wire aresetn
   .s_axis_cartesian_tvalid(s_axis_cartesian_tvalid),  // input wire s_axis_cartesian_tvalid
   .s_axis_cartesian_tready(s_axis_cartesian_tready),  // output wire s_axis_cartesian_tready
-  .s_axis_cartesian_tdata(s_axis_cartesian_tdata),    // input wire [95 : 0] s_axis_cartesian_tdata
+  .s_axis_cartesian_tdata(s_axis_cartesian_tdata),    // input wire [63 : 0] s_axis_cartesian_tdata
   .m_axis_dout_tvalid(m_axis_dout_tvalid),            // output wire m_axis_dout_tvalid
   .m_axis_dout_tdata(m_axis_dout_tdata)              // output wire [31 : 0] m_axis_dout_tdata
 );

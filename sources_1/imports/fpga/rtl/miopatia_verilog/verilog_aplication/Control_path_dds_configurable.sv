@@ -13,6 +13,10 @@ module Control_path_rafa
     input [15:0] numero_anchura,
     input logic signed [MAGNITUD_WIDTH-1:0] ADC_A,
     input logic signed [MAGNITUD_WIDTH-1:0] ADC_B,
+    input wren_sys,
+    input [7:0] address_wr_sys,
+    input [DATA_WIDTH-1:0]  data_write_sys,
+    output logic [DATA_WIDTH-1:0] data_read_sys, //borrar al terminar debug
     output logic fin,
     output logic fin2,
     output logic VALID_M,
@@ -115,6 +119,8 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
           else
             //		if ((address_mem!=199)||((address_mem==199)&& (contador_5_ciclos<=ciclos)))
             contador_5_ciclos<=contador_5_ciclos+1;
+            //creo que de esta manera puede funcionar mejor
+            
         if ((address_mem>=repeticiones))
         begin
           if ((fin2==1'b1)) //||(test2==1'b1))
@@ -134,6 +140,26 @@ parameter D0=2'b00, D1=2'b01, D2=2'b10;
             else
                 address_mem<=address_mem+paso;
         end
+        /*
+                    //creo que de esta manera puede funcionar mejor
+       if ((address_mem=repeticiones-1))
+        begin
+          if ((fin2==1'b1)) //||(test2==1'b1))
+          
+          begin
+            state1<=G3;
+           // if (!test2)
+           //     address_mem<='0;           
+            contador_5_ciclos<='0;
+            fin<=1'b1;
+          end
+        end
+        if ((contador_5_ciclos>ciclos)&&(detectado_cero_S==1'b1))
+        begin
+            if (address_mem<repeticiones)
+                address_mem<=address_mem+paso;
+        end
+        */
       end
       G3:
       begin
@@ -1027,7 +1053,7 @@ cordic_def ARCTANH_B
 assign DAC_A_ext={{EXTENSION{DAC_A[MAGNITUD_WIDTH-1]}},DAC_A};
 assign DAC_A_cos_ext={{EXTENSION{DAC_A_cos[MAGNITUD_WIDTH-1]}},DAC_A_cos};
   // Declare the ROM variable
-  logic [DATA_WIDTH-1:0] rom[2**ADDR_WIDTH-1:0];
+  logic [DATA_WIDTH-1:0] ram[2**ADDR_WIDTH-1:0];
 
   // Initialize the ROM with $readmemb.  Put the memory contents
   // in the file single_port_rom_init.txt.  Without this file,
@@ -1037,10 +1063,18 @@ assign DAC_A_cos_ext={{EXTENSION{DAC_A_cos[MAGNITUD_WIDTH-1]}},DAC_A_cos};
 
   initial
   begin
-    $readmemh(FICHERO_INICIAL, rom);
+    $readmemh(FICHERO_INICIAL, ram);
   end
-
-  assign incrementado = rom[address_mem]; //puro combinacional
+  always @(posedge clk125)
+    if (wren_sys)
+        ram[address_wr_sys]<=data_write_sys;
+    
+always @(posedge clk125) //borrar al terminar debug
+    data_read_sys <= ram[address_wr_sys] ; //borrar al terminar debug
+ 
+ 
+ assign incrementado = ram[address_mem]; //restituir terminar el debug
+ // assign incrementado = 32'd1407; //borrar al terminar el debuf
   assign estado_pasos_cero= test1? state2: state1;
 
 

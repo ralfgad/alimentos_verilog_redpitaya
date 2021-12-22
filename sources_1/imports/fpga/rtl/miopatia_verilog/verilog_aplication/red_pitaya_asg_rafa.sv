@@ -119,7 +119,7 @@ red_pitaya_asg_ch  #(.RSZ (RSZ)) ch_b (
   // buffer ctrl
   .buf_we_i        ({buf_b_we           }),  // buffer buffer write
   .buf_addr_i      ({buf_b_addr         }),  // buffer address
-  .buf_wdata_i     ({sys_wdata[14-1:0]  }),  // buffer write data
+  .buf_wdata_i     ({sys_wdata}),  // buffer write data
  // .buf_rdata_o     ({buf_b_rdata        }),  // buffer read data
  // .buf_rpnt_o      ({buf_b_rpnt         }),  // buffer current read pointer
   .buf_rdata_o     (),  // buffer read data
@@ -161,7 +161,7 @@ red_pitaya_asg_ch_rafa  #(.RSZ (RSZ)) ch_a (
   // buffer ctrl
   .buf_we_i        ({ buf_a_we         }),  // buffer buffer write
   .buf_addr_i      ({ buf_a_addr       }),  // buffer address
-  .buf_wdata_i     ({sys_wdata[14-1:0]}),  // buffer write data
+  .buf_wdata_i     ({sys_wdata}),  // buffer write data
   .buf_rdata_o     ({buf_a_rdata       }),  // buffer read data
   .buf_rpnt_o      ({ buf_a_rpnt       }),  // buffer current read pointer
   

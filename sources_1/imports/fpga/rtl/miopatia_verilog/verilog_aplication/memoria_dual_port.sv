@@ -13,7 +13,7 @@ module memoria_dual_port
 );
 
 	// Declare the ROM variable
-	reg [DATA_WIDTH-1:0] rom[2**ADDR_WIDTH-1:0];
+	(*rom_style ="block" *) reg [DATA_WIDTH-1:0] rom[2**ADDR_WIDTH-1:0];
 
 	// Initialize the ROM with $readmemb.  Put the memory contents
 	// in the file single_port_rom_init.txt.  Without this file,
